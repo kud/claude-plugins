@@ -104,7 +104,43 @@ Manage your Raindrop.io bookmarks from Claude — search your library, save new 
 
 ## Quick Start
 
-Each plugin's repo contains a `.claude-plugin/plugin.json` with the MCP server config and a list of companion skills. Install the plugin from its repo — the config comes with it.
+### 1. Register the marketplace
+
+Add this marketplace to your Claude Code config so Claude can discover available plugins:
+
+```bash
+claude plugins marketplace add https://github.com/kud/claude-plugins
+```
+
+### 2. List available plugins
+
+```bash
+claude plugins list
+```
+
+### 3. Install a plugin
+
+Installing a plugin clones its repo, registers the MCP server from `plugin.json`, and makes its skills available as slash commands:
+
+```bash
+claude plugins install mcp-opencode
+claude plugins install mcp-jenkins
+claude plugins install mcp-harness-fme
+claude plugins install mcp-trakt
+claude plugins install mcp-raindrop-io
+```
+
+### 4. Use a skill
+
+Once installed, skills are available immediately as slash commands:
+
+```
+/ask-opencode explain this function
+/ci-diagnose my-service
+/feature-flag-status my-flag
+/trakt-whats-on
+/bookmark-search react hooks
+```
 
 ---
 
