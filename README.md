@@ -39,6 +39,36 @@ Install a plugin → get the MCP tools _and_ the skills in one shot.
 
 ## Quick Start
 
+### 0. Set your env vars
+
+Tokens never live in config files — they're read from your shell environment. Add the ones you need to your `~/.zshrc`:
+
+```bash
+# opencode (optional — defaults to github-copilot/*)
+export OPENCODE_MODEL_ALLOW="github-copilot/*"
+
+# jenkins
+export JENKINS_URL="https://jenkins.example.com"
+export JENKINS_USER="your-username"
+export JENKINS_TOKEN="your-api-token"
+
+# harness fme
+export MCP_HARNESS_FME_TOKEN="your-harness-api-key"
+
+# trakt
+export MCP_TRAKT_CLIENT_ID="your-client-id"
+export MCP_TRAKT_ACCESS_TOKEN="your-access-token"
+
+# raindrop.io
+export MCP_RAINDROP_TOKEN="your-token"
+```
+
+Then reload your shell:
+
+```bash
+source ~/.zshrc
+```
+
 ### 1. Register the marketplace
 
 Add this marketplace to your Claude Code config so Claude can discover available plugins:
