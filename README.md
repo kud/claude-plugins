@@ -124,7 +124,7 @@ Installing a plugin registers the MCP server from `plugin.json` and makes its sk
 /plugin install mcp-raindrop-io@kud-plugins
 ```
 
-### 4. Use a skill
+### 3. Use a skill
 
 Once installed, skills are available immediately as slash commands:
 
