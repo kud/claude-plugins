@@ -45,12 +45,12 @@ Tokens never live in config files — they're read from your shell environment. 
 
 ```bash
 # opencode (optional — defaults to github-copilot/*)
-export OPENCODE_MODEL_ALLOW="github-copilot/*"
+export MCP_OPENCODE_MODEL_ALLOW="github-copilot/*"
 
 # jenkins
-export JENKINS_URL="https://jenkins.example.com"
-export JENKINS_USER="your-username"
-export JENKINS_TOKEN="your-api-token"
+export MCP_JENKINS_URL="https://jenkins.example.com"
+export MCP_JENKINS_USER="your-username"
+export MCP_JENKINS_TOKEN="your-api-token"
 
 # harness fme
 export MCP_HARNESS_FME_TOKEN="your-harness-api-key"
@@ -61,6 +61,12 @@ export MCP_TRAKT_ACCESS_TOKEN="your-access-token"
 
 # raindrop.io
 export MCP_RAINDROP_TOKEN="your-token"
+```
+
+All env vars are prefixed with `MCP_`. If you already have a token under a different name (e.g. `JENKINS_TOKEN`), just alias it:
+
+```bash
+export MCP_JENKINS_TOKEN="$JENKINS_TOKEN"
 ```
 
 Then reload your shell:
