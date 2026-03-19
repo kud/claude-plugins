@@ -1,0 +1,21 @@
+{
+  "id": "mcp-jenkins",
+  "name": "jenkins",
+  "displayName": "Jenkins",
+  "description": "Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures without leaving your session.",
+  "version": "1.0.0",
+  "author": "kud",
+  "repository": "https://github.com/kud/mcp-jenkins",
+  "npm": "@kud/mcp-jenkins",
+  "mcpConfig": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@kud/mcp-jenkins@latest"],
+    "env": {
+      "JENKINS_URL": "${JENKINS_URL}",
+      "JENKINS_USER": "${JENKINS_USER}",
+      "JENKINS_TOKEN": "${JENKINS_TOKEN}"
+    }
+  },
+  "skills": ["ci-diagnose", "build-watch"]
+}

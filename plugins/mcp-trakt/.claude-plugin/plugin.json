@@ -1,0 +1,20 @@
+{
+  "id": "mcp-trakt",
+  "name": "trakt",
+  "displayName": "Trakt",
+  "description": "Track what you're watching — search movies and shows, check in, scrobble, browse your history, manage your watchlist, and get personalised recommendations from inside Claude.",
+  "version": "1.0.0",
+  "author": "kud",
+  "repository": "https://github.com/kud/mcp-trakt",
+  "npm": "@kud/mcp-trakt",
+  "mcpConfig": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@kud/mcp-trakt@latest"],
+    "env": {
+      "TRAKT_CLIENT_ID": "${MCP_TRAKT_CLIENT_ID}",
+      "TRAKT_ACCESS_TOKEN": "${MCP_TRAKT_ACCESS_TOKEN}"
+    }
+  },
+  "skills": ["trakt-whats-on", "trakt-checkin"]
+}

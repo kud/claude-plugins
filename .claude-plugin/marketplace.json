@@ -1,0 +1,30 @@
+{
+  "name": "kud-plugins",
+  "displayName": "kud's Claude Plugins",
+  "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, and Raindrop.io.",
+  "version": "1.0.0",
+  "author": "kud",
+  "homepage": "https://github.com/kud/claude-plugins",
+  "plugins": [
+    {
+      "id": "mcp-opencode",
+      "path": "plugins/mcp-opencode"
+    },
+    {
+      "id": "mcp-jenkins",
+      "path": "plugins/mcp-jenkins"
+    },
+    {
+      "id": "mcp-harness-fme",
+      "path": "plugins/mcp-harness-fme"
+    },
+    {
+      "id": "mcp-trakt",
+      "path": "plugins/mcp-trakt"
+    },
+    {
+      "id": "mcp-raindrop-io",
+      "path": "plugins/mcp-raindrop-io"
+    }
+  ]
+}
