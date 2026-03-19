@@ -1,35 +1,66 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "kud-plugins",
-  "displayName": "kud's Claude Plugins",
   "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, and Raindrop.io.",
-  "version": "1.0.0",
-  "author": "kud",
-  "homepage": "https://github.com/kud/claude-plugins",
+  "owner": {
+    "name": "kud",
+    "email": "hello@kud.io"
+  },
   "plugins": [
     {
-      "id": "mcp-opencode",
-      "repository": "https://github.com/kud/mcp-opencode",
-      "npm": "@kud/mcp-opencode"
+      "name": "mcp-opencode",
+      "description": "Query any opencode-supported model from inside Claude — get a second opinion without leaving your session. Defaults to GitHub Copilot models; configurable via OPENCODE_MODEL_ALLOW.",
+      "category": "ai",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/kud/mcp-opencode.git",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/kud/mcp-opencode"
     },
     {
-      "id": "mcp-jenkins",
-      "repository": "https://github.com/kud/mcp-jenkins",
-      "npm": "@kud/mcp-jenkins"
+      "name": "mcp-jenkins",
+      "description": "Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures.",
+      "category": "development",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/kud/mcp-jenkins.git",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/kud/mcp-jenkins"
     },
     {
-      "id": "mcp-harness-fme",
-      "repository": "https://github.com/kud/mcp-harness-fme",
-      "npm": "@kud/mcp-harness-fme"
+      "name": "mcp-harness-fme",
+      "description": "Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.",
+      "category": "development",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/kud/mcp-harness-fme.git",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/kud/mcp-harness-fme"
     },
     {
-      "id": "mcp-trakt",
-      "repository": "https://github.com/kud/mcp-trakt",
-      "npm": "@kud/mcp-trakt"
+      "name": "mcp-trakt",
+      "description": "Track what you're watching — search movies and shows, check in, browse your history, manage your watchlist, and get recommendations.",
+      "category": "entertainment",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/kud/mcp-trakt.git",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/kud/mcp-trakt"
     },
     {
-      "id": "mcp-raindrop-io",
-      "repository": "https://github.com/kud/mcp-raindrop-io",
-      "npm": "@kud/mcp-raindrop-io"
+      "name": "mcp-raindrop-io",
+      "description": "Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.",
+      "category": "productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/kud/mcp-raindrop-io.git",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/kud/mcp-raindrop-io"
     }
   ]
 }
