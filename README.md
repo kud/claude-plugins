@@ -37,71 +37,6 @@ Install a plugin → get the MCP tools _and_ the skills in one shot.
 
 ---
 
-## Plugins
-
-### 🤖 [mcp-opencode](./plugins/mcp-opencode)
-
-Query GitHub Copilot models from inside Claude. Get a second opinion from `gpt-4.1`, `gpt-4o`, `o3`, or `o4-mini` without leaving your session.
-
-| Skill           | Description                                                  |
-| --------------- | ------------------------------------------------------------ |
-| `/ask-opencode` | Send a prompt to a Copilot model and see the response inline |
-
-**npm**: [`@kud/mcp-opencode`](https://www.npmjs.com/package/@kud/mcp-opencode)
-
----
-
-### 🏗️ [mcp-jenkins](./plugins/mcp-jenkins)
-
-Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures.
-
-| Skill          | Description                                                    |
-| -------------- | -------------------------------------------------------------- |
-| `/ci-diagnose` | Fetch a failing build's console log and explain the root cause |
-| `/build-watch` | Trigger a build and watch it to completion with live status    |
-
-**npm**: [`@kud/mcp-jenkins`](https://www.npmjs.com/package/@kud/mcp-jenkins)
-
----
-
-### 🚩 [mcp-harness-fme](./plugins/mcp-harness-fme)
-
-Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.
-
-| Skill                  | Description                                           |
-| ---------------------- | ----------------------------------------------------- |
-| `/feature-flag-status` | Full status report for a flag across all environments |
-
-**npm**: [`@kud/mcp-harness-fme`](https://www.npmjs.com/package/@kud/mcp-harness-fme)
-
----
-
-### 🎬 [mcp-trakt](./plugins/mcp-trakt)
-
-Track what you're watching — search movies and shows, check in, browse your history, manage your watchlist, and get recommendations.
-
-| Skill             | Description                                              |
-| ----------------- | -------------------------------------------------------- |
-| `/trakt-whats-on` | See your watchlist, recently watched, and what's up next |
-| `/trakt-checkin`  | Check in to a movie or episode you're about to watch     |
-
-**npm**: [`@kud/mcp-trakt`](https://www.npmjs.com/package/@kud/mcp-trakt)
-
----
-
-### 🔖 [mcp-raindrop-io](./plugins/mcp-raindrop-io)
-
-Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.
-
-| Skill              | Description                                          |
-| ------------------ | ---------------------------------------------------- |
-| `/bookmark-search` | Search your bookmarks by keyword, tag, or collection |
-| `/bookmark-save`   | Save a URL to Raindrop.io with tags and collection   |
-
-**npm**: [`@kud/mcp-raindrop-io`](https://www.npmjs.com/package/@kud/mcp-raindrop-io)
-
----
-
 ## Quick Start
 
 ### 1. Register the marketplace
@@ -135,6 +70,71 @@ Once installed, skills are available immediately as slash commands:
 /trakt-whats-on
 /bookmark-search react hooks
 ```
+
+---
+
+## Plugins
+
+### 🤖 [mcp-opencode](https://github.com/kud/mcp-opencode)
+
+Query GitHub Copilot models from inside Claude. Get a second opinion from `gpt-4.1`, `gpt-4o`, `o3`, or `o4-mini` without leaving your session.
+
+| Skill           | Description                                                  |
+| --------------- | ------------------------------------------------------------ |
+| `/ask-opencode` | Send a prompt to a Copilot model and see the response inline |
+
+**npm**: [`@kud/mcp-opencode`](https://www.npmjs.com/package/@kud/mcp-opencode)
+
+---
+
+### 🏗️ [mcp-jenkins](https://github.com/kud/mcp-jenkins)
+
+Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures.
+
+| Skill          | Description                                                    |
+| -------------- | -------------------------------------------------------------- |
+| `/ci-diagnose` | Fetch a failing build's console log and explain the root cause |
+| `/build-watch` | Trigger a build and watch it to completion with live status    |
+
+**npm**: [`@kud/mcp-jenkins`](https://www.npmjs.com/package/@kud/mcp-jenkins)
+
+---
+
+### 🚩 [mcp-harness-fme](https://github.com/kud/mcp-harness-fme)
+
+Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.
+
+| Skill                  | Description                                           |
+| ---------------------- | ----------------------------------------------------- |
+| `/feature-flag-status` | Full status report for a flag across all environments |
+
+**npm**: [`@kud/mcp-harness-fme`](https://www.npmjs.com/package/@kud/mcp-harness-fme)
+
+---
+
+### 🎬 [mcp-trakt](https://github.com/kud/mcp-trakt)
+
+Track what you're watching — search movies and shows, check in, browse your history, manage your watchlist, and get recommendations.
+
+| Skill             | Description                                              |
+| ----------------- | -------------------------------------------------------- |
+| `/trakt-whats-on` | See your watchlist, recently watched, and what's up next |
+| `/trakt-checkin`  | Check in to a movie or episode you're about to watch     |
+
+**npm**: [`@kud/mcp-trakt`](https://www.npmjs.com/package/@kud/mcp-trakt)
+
+---
+
+### 🔖 [mcp-raindrop-io](https://github.com/kud/mcp-raindrop-io)
+
+Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.
+
+| Skill              | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `/bookmark-search` | Search your bookmarks by keyword, tag, or collection |
+| `/bookmark-save`   | Save a URL to Raindrop.io with tags and collection   |
+
+**npm**: [`@kud/mcp-raindrop-io`](https://www.npmjs.com/package/@kud/mcp-raindrop-io)
 
 ---
 
