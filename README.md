@@ -79,14 +79,21 @@ Add this marketplace to your Claude Code config so Claude can discover available
 
 ### 2. Install a plugin
 
-Installing a plugin registers the MCP server from `plugin.json` and makes its skills available as slash commands:
+Installing a plugin registers the MCP server from `plugin.json` and makes its skills available as slash commands.
+
+**Personal plugins** (trakt, raindrop, opencode) — install globally for your user:
 
 ```
-/plugin install mcp-opencode@kud-plugins
-/plugin install mcp-jenkins@kud-plugins
-/plugin install mcp-harness-fme@kud-plugins
-/plugin install mcp-trakt@kud-plugins
-/plugin install mcp-raindrop-io@kud-plugins
+/plugin install mcp-opencode@kud-plugins --scope user
+/plugin install mcp-trakt@kud-plugins --scope user
+/plugin install mcp-raindrop-io@kud-plugins --scope user
+```
+
+**Team plugins** (jenkins, harness-fme) — install at project scope to share with your team via `.claude/settings.json`:
+
+```
+/plugin install mcp-jenkins@kud-plugins --scope project
+/plugin install mcp-harness-fme@kud-plugins --scope project
 ```
 
 ### 3. Use a skill
