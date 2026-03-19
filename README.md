@@ -173,48 +173,62 @@ my ai sync
 
 ## Structure
 
+The marketplace is a thin index — each plugin lives in its own repo.
+
 ```
-claude-plugins/
+claude-plugins/               ← this repo (index only)
+└── .claude-plugin/
+    └── marketplace.json      # Lists plugin repos by id + GitHub URL
+```
+
+Each MCP server repo carries its own plugin manifest and skills:
+
+```
+mcp-opencode/                 ← github.com/kud/mcp-opencode
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin index
-├── plugins/
-│   ├── mcp-opencode/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json       # MCP config + skill list
-│   │   └── skills/
-│   │       └── ask-opencode/
-│   │           └── SKILL.md
-│   ├── mcp-jenkins/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/
-│   │       ├── ci-diagnose/
-│   │       │   └── SKILL.md
-│   │       └── build-watch/
-│   │           └── SKILL.md
-│   ├── mcp-harness-fme/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/
-│   │       └── feature-flag-status/
-│   │           └── SKILL.md
-│   ├── mcp-trakt/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/
-│   │       ├── trakt-whats-on/
-│   │       │   └── SKILL.md
-│   │       └── trakt-checkin/
-│   │           └── SKILL.md
-│   └── mcp-raindrop-io/
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       └── skills/
-│           ├── bookmark-search/
-│           │   └── SKILL.md
-│           └── bookmark-save/
-│               └── SKILL.md
-└── README.md
+│   └── plugin.json           # MCP config + skill list
+├── skills/
+│   └── ask-opencode/
+│       └── SKILL.md
+└── src/                      # MCP server source
+
+mcp-jenkins/                  ← github.com/kud/mcp-jenkins
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   ├── ci-diagnose/
+│   │   └── SKILL.md
+│   └── build-watch/
+│       └── SKILL.md
+└── src/
+
+mcp-harness-fme/              ← github.com/kud/mcp-harness-fme
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   └── feature-flag-status/
+│       └── SKILL.md
+└── src/
+
+mcp-trakt/                    ← github.com/kud/mcp-trakt
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   ├── trakt-whats-on/
+│   │   └── SKILL.md
+│   └── trakt-checkin/
+│       └── SKILL.md
+└── src/
+
+mcp-raindrop-io/              ← github.com/kud/mcp-raindrop-io
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   ├── bookmark-search/
+│   │   └── SKILL.md
+│   └── bookmark-save/
+│       └── SKILL.md
+└── src/
 ```
 
 ---

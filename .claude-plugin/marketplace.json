@@ -8,23 +8,28 @@
   "plugins": [
     {
       "id": "mcp-opencode",
-      "path": "plugins/mcp-opencode"
+      "repository": "https://github.com/kud/mcp-opencode",
+      "npm": "@kud/mcp-opencode"
     },
     {
       "id": "mcp-jenkins",
-      "path": "plugins/mcp-jenkins"
+      "repository": "https://github.com/kud/mcp-jenkins",
+      "npm": "@kud/mcp-jenkins"
     },
     {
       "id": "mcp-harness-fme",
-      "path": "plugins/mcp-harness-fme"
+      "repository": "https://github.com/kud/mcp-harness-fme",
+      "npm": "@kud/mcp-harness-fme"
     },
     {
       "id": "mcp-trakt",
-      "path": "plugins/mcp-trakt"
+      "repository": "https://github.com/kud/mcp-trakt",
+      "npm": "@kud/mcp-trakt"
     },
     {
       "id": "mcp-raindrop-io",
-      "path": "plugins/mcp-raindrop-io"
+      "repository": "https://github.com/kud/mcp-raindrop-io",
+      "npm": "@kud/mcp-raindrop-io"
     }
   ]
 }
