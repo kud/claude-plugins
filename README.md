@@ -77,11 +77,11 @@ Once installed, skills are available immediately as slash commands:
 
 ### 🤖 [mcp-opencode](https://github.com/kud/mcp-opencode)
 
-Query GitHub Copilot models from inside Claude. Get a second opinion from `gpt-4.1`, `gpt-4o`, `o3`, or `o4-mini` without leaving your session.
+Query any opencode-supported model from inside Claude — get a second opinion without leaving your session. Defaults to GitHub Copilot models; configurable via `OPENCODE_MODEL_ALLOW`.
 
-| Skill           | Description                                                  |
-| --------------- | ------------------------------------------------------------ |
-| `/ask-opencode` | Send a prompt to a Copilot model and see the response inline |
+| Skill           | Description                                                     |
+| --------------- | --------------------------------------------------------------- |
+| `/ask-opencode` | Send a prompt to any opencode model and see the response inline |
 
 **npm**: [`@kud/mcp-opencode`](https://www.npmjs.com/package/@kud/mcp-opencode)
 
