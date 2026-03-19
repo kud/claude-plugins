@@ -108,26 +108,20 @@ Manage your Raindrop.io bookmarks from Claude — search your library, save new 
 
 Add this marketplace to your Claude Code config so Claude can discover available plugins:
 
-```bash
-claude plugins marketplace add https://github.com/kud/claude-plugins
+```
+/plugin marketplace add kud/claude-plugins
 ```
 
-### 2. List available plugins
+### 2. Install a plugin
 
-```bash
-claude plugins list
+Installing a plugin registers the MCP server from `plugin.json` and makes its skills available as slash commands:
+
 ```
-
-### 3. Install a plugin
-
-Installing a plugin clones its repo, registers the MCP server from `plugin.json`, and makes its skills available as slash commands:
-
-```bash
-claude plugins install mcp-opencode
-claude plugins install mcp-jenkins
-claude plugins install mcp-harness-fme
-claude plugins install mcp-trakt
-claude plugins install mcp-raindrop-io
+/plugin install mcp-opencode@kud-plugins
+/plugin install mcp-jenkins@kud-plugins
+/plugin install mcp-harness-fme@kud-plugins
+/plugin install mcp-trakt@kud-plugins
+/plugin install mcp-raindrop-io@kud-plugins
 ```
 
 ### 4. Use a skill
