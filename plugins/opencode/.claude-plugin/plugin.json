@@ -1,0 +1,21 @@
+{
+  "name": "opencode",
+  "description": "Query any opencode-supported model from inside Claude — get a second opinion without leaving your session.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-opencode",
+  "license": "MIT",
+  "mcpServers": {
+    "mcp-opencode": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-opencode@latest"],
+      "env": {
+        "OPENCODE_MODEL_ALLOW": "${MCP_OPENCODE_MODEL_ALLOW:-github-copilot/*}",
+        "OPENCODE_MODEL_BLOCK": "${MCP_OPENCODE_MODEL_BLOCK:-}"
+      }
+    }
+  }
+}

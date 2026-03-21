@@ -1,0 +1,20 @@
+{
+  "name": "raindrop-io",
+  "description": "Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-raindrop-io",
+  "license": "MIT",
+  "mcpServers": {
+    "mcp-raindrop-io": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-raindrop-io@latest"],
+      "env": {
+        "RAINDROP_TOKEN": "${MCP_RAINDROP_TOKEN}"
+      }
+    }
+  }
+}

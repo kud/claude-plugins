@@ -1,0 +1,21 @@
+{
+  "name": "google-keep",
+  "description": "Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-google-keep",
+  "license": "MIT",
+  "mcpServers": {
+    "mcp-google-keep": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/kud/mcp-google-keep",
+        "mcp-google-keep"
+      ]
+    }
+  }
+}

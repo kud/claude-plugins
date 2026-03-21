@@ -6,72 +6,39 @@
     "name": "kud",
     "email": "hello@kud.io"
   },
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
   "plugins": [
     {
       "name": "opencode",
-      "description": "Query any opencode-supported model from inside Claude — get a second opinion without leaving your session. Defaults to GitHub Copilot models; configurable via OPENCODE_MODEL_ALLOW.",
-      "category": "ai",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/kud/mcp-opencode.git",
-        "ref": "main"
-      },
-      "homepage": "https://github.com/kud/mcp-opencode"
+      "source": "opencode",
+      "category": "ai"
     },
     {
       "name": "jenkins",
-      "description": "Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures.",
-      "category": "development",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/kud/mcp-jenkins.git",
-        "ref": "main"
-      },
-      "homepage": "https://github.com/kud/mcp-jenkins"
+      "source": "jenkins",
+      "category": "development"
     },
     {
       "name": "harness-fme",
-      "description": "Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.",
-      "category": "development",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/kud/mcp-harness-fme.git",
-        "ref": "main"
-      },
-      "homepage": "https://github.com/kud/mcp-harness-fme"
+      "source": "harness-fme",
+      "category": "development"
     },
     {
       "name": "trakt",
-      "description": "Track what you're watching — search movies and shows, check in, browse your history, manage your watchlist, and get recommendations.",
-      "category": "entertainment",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/kud/mcp-trakt.git",
-        "ref": "main"
-      },
-      "homepage": "https://github.com/kud/mcp-trakt"
+      "source": "trakt",
+      "category": "entertainment"
     },
     {
       "name": "raindrop-io",
-      "description": "Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.",
-      "category": "productivity",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/kud/mcp-raindrop-io.git",
-        "ref": "main"
-      },
-      "homepage": "https://github.com/kud/mcp-raindrop-io"
+      "source": "raindrop-io",
+      "category": "productivity"
     },
     {
       "name": "google-keep",
-      "description": "Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.",
-      "category": "productivity",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/kud/mcp-google-keep.git",
-        "ref": "main"
-      },
-      "homepage": "https://github.com/kud/mcp-google-keep"
+      "source": "google-keep",
+      "category": "productivity"
     }
   ]
 }
