@@ -3,8 +3,7 @@
   "name": "kud",
   "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, Raindrop.io, and Google Keep.",
   "owner": {
-    "name": "kud",
-    "email": "hello@kud.io"
+    "name": "kud"
   },
   "metadata": {
     "version": "1.0.0",
