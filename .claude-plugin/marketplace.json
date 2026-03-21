@@ -6,38 +6,37 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "1.0.0",
-    "pluginRoot": "./plugins"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "opencode",
-      "source": "opencode",
+      "source": "./plugins/opencode",
       "category": "ai"
     },
     {
       "name": "jenkins",
-      "source": "jenkins",
+      "source": "./plugins/jenkins",
       "category": "development"
     },
     {
       "name": "harness-fme",
-      "source": "harness-fme",
+      "source": "./plugins/harness-fme",
       "category": "development"
     },
     {
       "name": "trakt",
-      "source": "trakt",
+      "source": "./plugins/trakt",
       "category": "entertainment"
     },
     {
       "name": "raindrop-io",
-      "source": "raindrop-io",
+      "source": "./plugins/raindrop-io",
       "category": "productivity"
     },
     {
       "name": "google-keep",
-      "source": "google-keep",
+      "source": "./plugins/google-keep",
       "category": "productivity"
     }
   ]
