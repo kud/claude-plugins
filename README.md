@@ -41,31 +41,13 @@ Install a plugin → get the MCP tools _and_ the skills in one shot.
 
 ### 1. Register the marketplace
 
-Add this marketplace to your Claude Code config so Claude can discover available plugins:
-
 ```
 /plugin marketplace add kud/claude-plugins  # registers as @kud
 ```
 
-### 2. Set env vars for the plugin you want
+### 2. Install a plugin
 
-Each plugin reads its credentials from your shell environment — tokens never live in config files. See the env vars block in each plugin's section below, then add what you need to your `~/.zshrc` and reload:
-
-```bash
-source ~/.zshrc
-```
-
-All env vars are prefixed with `MCP_`. If you already have a token under a different name (e.g. `JENKINS_TOKEN`), alias it:
-
-```bash
-export MCP_JENKINS_TOKEN="$JENKINS_TOKEN"
-```
-
-### 3. Install a plugin
-
-Installing a plugin registers the MCP server from `plugin.json` and makes its skills available as slash commands.
-
-**Personal plugins** (trakt, raindrop, opencode, google-keep) — install globally for your user:
+**Personal plugins** — install globally for your user:
 
 ```
 /plugin install opencode@kud --scope user
@@ -74,16 +56,18 @@ Installing a plugin registers the MCP server from `plugin.json` and makes its sk
 /plugin install google-keep@kud --scope user
 ```
 
-**Team plugins** (jenkins, harness-fme) — install at project scope to share with your team via `.claude/settings.json`:
+**Team plugins** — install at project scope to share via `.claude/settings.json`:
 
 ```
 /plugin install jenkins@kud --scope project
 /plugin install harness-fme@kud --scope project
 ```
 
-### 4. Use a skill
+### 3. Set up credentials
 
-Once installed, skills are available immediately as slash commands:
+Each plugin that requires authentication includes setup instructions in its homepage. Follow those before use.
+
+### 4. Use a skill
 
 ```
 /ask-opencode explain this function
@@ -92,7 +76,6 @@ Once installed, skills are available immediately as slash commands:
 /trakt-whats-on
 /bookmark-search react hooks
 /keep-capture remember to buy oat milk
-/keep-todo Shopping
 ```
 
 ---
@@ -101,17 +84,11 @@ Once installed, skills are available immediately as slash commands:
 
 ### 🤖 [mcp-opencode](https://github.com/kud/mcp-opencode)
 
-Query any opencode-supported model from inside Claude — get a second opinion without leaving your session. Defaults to GitHub Copilot models; configurable via `OPENCODE_MODEL_ALLOW`.
+Query any opencode-supported model from inside Claude — get a second opinion without leaving your session.
 
 | Skill           | Description                                                     |
 | --------------- | --------------------------------------------------------------- |
 | `/ask-opencode` | Send a prompt to any opencode model and see the response inline |
-
-**Env vars** (optional):
-
-```bash
-export MCP_OPENCODE_MODEL_ALLOW="github-copilot/*"  # defaults to github-copilot/*
-```
 
 **npm**: [`@kud/mcp-opencode`](https://www.npmjs.com/package/@kud/mcp-opencode)
 
@@ -126,14 +103,6 @@ Full Jenkins control from Claude — inspect builds, stream console logs, trigge
 | `/ci-diagnose` | Fetch a failing build's console log and explain the root cause |
 | `/build-watch` | Trigger a build and watch it to completion with live status    |
 
-**Env vars**:
-
-```bash
-export MCP_JENKINS_URL="https://jenkins.example.com"
-export MCP_JENKINS_USER="your-username"
-export MCP_JENKINS_TOKEN="your-api-token"
-```
-
 **npm**: [`@kud/mcp-jenkins`](https://www.npmjs.com/package/@kud/mcp-jenkins)
 
 ---
@@ -145,12 +114,6 @@ Inspect and control Harness FME feature flags — list environments, audit targe
 | Skill                  | Description                                           |
 | ---------------------- | ----------------------------------------------------- |
 | `/feature-flag-status` | Full status report for a flag across all environments |
-
-**Env vars**:
-
-```bash
-export MCP_HARNESS_FME_TOKEN="your-harness-api-key"
-```
 
 **npm**: [`@kud/mcp-harness-fme`](https://www.npmjs.com/package/@kud/mcp-harness-fme)
 
@@ -178,12 +141,6 @@ Manage your Raindrop.io bookmarks from Claude — search your library, save new 
 | `/bookmark-search` | Search your bookmarks by keyword, tag, or collection |
 | `/bookmark-save`   | Save a URL to Raindrop.io with tags and collection   |
 
-**Env vars**:
-
-```bash
-export MCP_RAINDROP_TOKEN="your-token"
-```
-
 **npm**: [`@kud/mcp-raindrop-io`](https://www.npmjs.com/package/@kud/mcp-raindrop-io)
 
 ---
@@ -203,73 +160,19 @@ Read and write your Google Keep notes from Claude — capture thoughts, manage c
 
 ## Structure
 
-The marketplace is a thin index — each plugin lives in its own repo.
+Each plugin lives in its own repo and carries its own manifest and skills:
 
 ```
-claude-plugins/               ← this repo (index only)
-└── .claude-plugin/
-    └── marketplace.json      # Lists plugin repos by id + GitHub URL
-```
-
-Each MCP server repo carries its own plugin manifest and skills:
-
-```
-mcp-opencode/                 ← github.com/kud/mcp-opencode
+mcp-example/                  ← github.com/kud/mcp-example
 ├── .claude-plugin/
 │   └── plugin.json           # MCP config + skill list
 ├── skills/
-│   └── ask-opencode/
-│       └── SKILL.md
-└── src/                      # MCP server source
-
-mcp-jenkins/                  ← github.com/kud/mcp-jenkins
-├── .claude-plugin/
-│   └── plugin.json
-├── skills/
-│   ├── ci-diagnose/
-│   │   └── SKILL.md
-│   └── build-watch/
+│   └── my-skill/
 │       └── SKILL.md
 └── src/
-
-mcp-harness-fme/              ← github.com/kud/mcp-harness-fme
-├── .claude-plugin/
-│   └── plugin.json
-├── skills/
-│   └── feature-flag-status/
-│       └── SKILL.md
-└── src/
-
-mcp-trakt/                    ← github.com/kud/mcp-trakt
-├── .claude-plugin/
-│   └── plugin.json
-├── skills/
-│   ├── trakt-whats-on/
-│   │   └── SKILL.md
-│   └── trakt-checkin/
-│       └── SKILL.md
-└── src/
-
-mcp-raindrop-io/              ← github.com/kud/mcp-raindrop-io
-├── .claude-plugin/
-│   └── plugin.json
-├── skills/
-│   ├── bookmark-search/
-│   │   └── SKILL.md
-│   └── bookmark-save/
-│       └── SKILL.md
-└── src/
-
-mcp-google-keep/              ← github.com/kud/mcp-google-keep
-├── .claude-plugin/
-│   └── plugin.json
-├── skills/
-│   ├── keep-capture/
-│   │   └── SKILL.md
-│   └── keep-todo/
-│       └── SKILL.md
-└── server.py                 # Python MCP server
 ```
+
+This repo (`claude-plugins`) is a thin index that points to those repos.
 
 ---
 
@@ -293,8 +196,6 @@ mcp-google-keep/              ← github.com/kud/mcp-google-keep
 ---
 
 ## MCP Servers
-
-Each plugin points to a published package. All source code is on GitHub:
 
 | Plugin      | Package                                                                    | GitHub                                                        |
 | ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
