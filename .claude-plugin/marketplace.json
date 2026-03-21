@@ -11,31 +11,37 @@
   "plugins": [
     {
       "name": "opencode",
+      "version": "1.1.0",
       "source": "./plugins/opencode",
       "category": "ai"
     },
     {
       "name": "jenkins",
+      "version": "1.1.0",
       "source": "./plugins/jenkins",
       "category": "development"
     },
     {
       "name": "harness-fme",
+      "version": "1.1.0",
       "source": "./plugins/harness-fme",
       "category": "development"
     },
     {
       "name": "trakt",
+      "version": "1.1.0",
       "source": "./plugins/trakt",
       "category": "entertainment"
     },
     {
       "name": "raindrop-io",
+      "version": "1.1.0",
       "source": "./plugins/raindrop-io",
       "category": "productivity"
     },
     {
       "name": "google-keep",
+      "version": "1.1.0",
       "source": "./plugins/google-keep",
       "category": "productivity"
     }
