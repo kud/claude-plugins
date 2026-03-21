@@ -87,12 +87,13 @@ Add this marketplace to your Claude Code config so Claude can discover available
 
 Installing a plugin registers the MCP server from `plugin.json` and makes its skills available as slash commands.
 
-**Personal plugins** (trakt, raindrop, opencode) — install globally for your user:
+**Personal plugins** (trakt, raindrop, opencode, google-keep) — install globally for your user:
 
 ```
 /plugin install mcp-opencode@kud-plugins --scope user
 /plugin install mcp-trakt@kud-plugins --scope user
 /plugin install mcp-raindrop-io@kud-plugins --scope user
+/plugin install mcp-google-keep@kud-plugins --scope user
 ```
 
 **Team plugins** (jenkins, harness-fme) — install at project scope to share with your team via `.claude/settings.json`:
@@ -112,6 +113,8 @@ Once installed, skills are available immediately as slash commands:
 /feature-flag-status my-flag
 /trakt-whats-on
 /bookmark-search react hooks
+/keep-capture remember to buy oat milk
+/keep-todo Shopping
 ```
 
 ---
@@ -181,6 +184,19 @@ Manage your Raindrop.io bookmarks from Claude — search your library, save new 
 
 ---
 
+### 📝 [mcp-google-keep](https://github.com/kud/mcp-google-keep)
+
+Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.
+
+| Skill            | Description                               |
+| ---------------- | ----------------------------------------- |
+| `/keep-capture`  | Quickly save a thought or note to Keep    |
+| `/keep-todo`     | View and manage a Google Keep checklist   |
+
+**GitHub (Python)**: [kud/mcp-google-keep](https://github.com/kud/mcp-google-keep) — installed via `uvx`
+
+---
+
 ## Structure
 
 The marketplace is a thin index — each plugin lives in its own repo.
@@ -239,13 +255,23 @@ mcp-raindrop-io/              ← github.com/kud/mcp-raindrop-io
 │   └── bookmark-save/
 │       └── SKILL.md
 └── src/
+
+mcp-google-keep/              ← github.com/kud/mcp-google-keep
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   ├── keep-capture/
+│   │   └── SKILL.md
+│   └── keep-todo/
+│       └── SKILL.md
+└── server.py                 # Python MCP server
 ```
 
 ---
 
 ## Skills
 
-**Total: 8 Skills across 5 plugins**
+**Total: 10 Skills across 6 plugins**
 
 | Plugin      | Skill               | Trigger                       | What it does                           |
 | ----------- | ------------------- | ----------------------------- | -------------------------------------- |
@@ -257,20 +283,23 @@ mcp-raindrop-io/              ← github.com/kud/mcp-raindrop-io
 | trakt       | trakt-checkin       | `/trakt-checkin <title>`      | Check in to what you're watching       |
 | raindrop-io | bookmark-search     | `/bookmark-search <query>`    | Search your bookmarks                  |
 | raindrop-io | bookmark-save       | `/bookmark-save <url>`        | Save a URL to Raindrop.io              |
+| google-keep | keep-capture        | `/keep-capture <text>`        | Capture a thought to Google Keep       |
+| google-keep | keep-todo           | `/keep-todo <list>`           | Manage a Google Keep checklist         |
 
 ---
 
 ## MCP Servers
 
-Each plugin points to a published npm package. All source code is on GitHub:
+Each plugin points to a published package. All source code is on GitHub:
 
-| Plugin          | npm                                                                        | GitHub                                                        |
-| --------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| mcp-opencode    | [@kud/mcp-opencode](https://www.npmjs.com/package/@kud/mcp-opencode)       | [kud/mcp-opencode](https://github.com/kud/mcp-opencode)       |
-| mcp-jenkins     | [@kud/mcp-jenkins](https://www.npmjs.com/package/@kud/mcp-jenkins)         | [kud/mcp-jenkins](https://github.com/kud/mcp-jenkins)         |
-| mcp-harness-fme | [@kud/mcp-harness-fme](https://www.npmjs.com/package/@kud/mcp-harness-fme) | [kud/mcp-harness-fme](https://github.com/kud/mcp-harness-fme) |
-| mcp-trakt       | [@kud/mcp-trakt](https://www.npmjs.com/package/@kud/mcp-trakt)             | [kud/mcp-trakt](https://github.com/kud/mcp-trakt)             |
-| mcp-raindrop-io | [@kud/mcp-raindrop-io](https://www.npmjs.com/package/@kud/mcp-raindrop-io) | [kud/mcp-raindrop-io](https://github.com/kud/mcp-raindrop-io) |
+| Plugin          | Package                                                                    | GitHub                                                              |
+| --------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| mcp-opencode    | [@kud/mcp-opencode](https://www.npmjs.com/package/@kud/mcp-opencode)       | [kud/mcp-opencode](https://github.com/kud/mcp-opencode)             |
+| mcp-jenkins     | [@kud/mcp-jenkins](https://www.npmjs.com/package/@kud/mcp-jenkins)         | [kud/mcp-jenkins](https://github.com/kud/mcp-jenkins)               |
+| mcp-harness-fme | [@kud/mcp-harness-fme](https://www.npmjs.com/package/@kud/mcp-harness-fme) | [kud/mcp-harness-fme](https://github.com/kud/mcp-harness-fme)       |
+| mcp-trakt       | [@kud/mcp-trakt](https://www.npmjs.com/package/@kud/mcp-trakt)             | [kud/mcp-trakt](https://github.com/kud/mcp-trakt)                   |
+| mcp-raindrop-io | [@kud/mcp-raindrop-io](https://www.npmjs.com/package/@kud/mcp-raindrop-io) | [kud/mcp-raindrop-io](https://github.com/kud/mcp-raindrop-io)       |
+| mcp-google-keep | GitHub (Python / uvx)                                                      | [kud/mcp-google-keep](https://github.com/kud/mcp-google-keep)       |
 
 ---
 

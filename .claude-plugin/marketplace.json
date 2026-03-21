@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "kud-plugins",
-  "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, and Raindrop.io.",
+  "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, Raindrop.io, and Google Keep.",
   "owner": {
     "name": "kud",
     "email": "hello@kud.io"
@@ -61,6 +61,17 @@
         "ref": "main"
       },
       "homepage": "https://github.com/kud/mcp-raindrop-io"
+    },
+    {
+      "name": "mcp-google-keep",
+      "description": "Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.",
+      "category": "productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/kud/mcp-google-keep.git",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/kud/mcp-google-keep"
     }
   ]
 }
