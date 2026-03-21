@@ -8,14 +8,14 @@
   },
   "homepage": "https://github.com/kud/mcp-trakt",
   "license": "MIT",
+  "setup": {
+    "instructions": "Authenticate with Trakt by running: npx @kud/mcp-trakt setup",
+    "command": "npx @kud/mcp-trakt setup"
+  },
   "mcpServers": {
     "mcp-trakt": {
       "command": "npx",
-      "args": ["-y", "@kud/mcp-trakt@latest"],
-      "env": {
-        "TRAKT_CLIENT_ID": "${MCP_TRAKT_CLIENT_ID}",
-        "TRAKT_ACCESS_TOKEN": "${MCP_TRAKT_ACCESS_TOKEN}"
-      }
+      "args": ["-y", "@kud/mcp-trakt@latest"]
     }
   }
 }
