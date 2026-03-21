@@ -165,13 +165,6 @@ Track what you're watching — search movies and shows, check in, browse your hi
 | `/trakt-whats-on` | See your watchlist, recently watched, and what's up next |
 | `/trakt-checkin`  | Check in to a movie or episode you're about to watch     |
 
-**Env vars**:
-
-```bash
-export MCP_TRAKT_CLIENT_ID="your-client-id"
-export MCP_TRAKT_ACCESS_TOKEN="your-access-token"
-```
-
 **npm**: [`@kud/mcp-trakt`](https://www.npmjs.com/package/@kud/mcp-trakt)
 
 ---
