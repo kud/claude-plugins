@@ -8,6 +8,10 @@
   },
   "homepage": "https://github.com/kud/mcp-google-keep",
   "license": "MIT",
+  "setup": {
+    "instructions": "Authenticate with Google Keep by running: mcp-google-keep-setup",
+    "command": "mcp-google-keep-setup"
+  },
   "mcpServers": {
     "mcp-google-keep": {
       "command": "uvx",
