@@ -12,36 +12,42 @@
     {
       "name": "opencode",
       "version": "1.1.0",
+      "description": "Query any opencode-supported model from inside Claude — get a second opinion without leaving your session.",
       "source": "./plugins/opencode",
       "category": "ai"
     },
     {
       "name": "jenkins",
       "version": "1.1.0",
+      "description": "Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures.",
       "source": "./plugins/jenkins",
       "category": "development"
     },
     {
       "name": "harness-fme",
       "version": "1.1.0",
+      "description": "Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.",
       "source": "./plugins/harness-fme",
       "category": "development"
     },
     {
       "name": "trakt",
       "version": "1.1.0",
+      "description": "Track what you're watching — search movies and shows, check in, browse your history, manage your watchlist, and get recommendations.",
       "source": "./plugins/trakt",
       "category": "entertainment"
     },
     {
       "name": "raindrop-io",
       "version": "1.1.0",
+      "description": "Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.",
       "source": "./plugins/raindrop-io",
       "category": "productivity"
     },
     {
       "name": "google-keep",
       "version": "1.1.0",
+      "description": "Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.",
       "source": "./plugins/google-keep",
       "category": "productivity"
     }
