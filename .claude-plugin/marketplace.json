@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "kud-plugins",
+  "name": "kud",
   "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, Raindrop.io, and Google Keep.",
   "owner": {
     "name": "kud",
@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "mcp-opencode",
+      "name": "opencode",
       "description": "Query any opencode-supported model from inside Claude — get a second opinion without leaving your session. Defaults to GitHub Copilot models; configurable via OPENCODE_MODEL_ALLOW.",
       "category": "ai",
       "source": {
@@ -19,7 +19,7 @@
       "homepage": "https://github.com/kud/mcp-opencode"
     },
     {
-      "name": "mcp-jenkins",
+      "name": "jenkins",
       "description": "Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures.",
       "category": "development",
       "source": {
@@ -30,7 +30,7 @@
       "homepage": "https://github.com/kud/mcp-jenkins"
     },
     {
-      "name": "mcp-harness-fme",
+      "name": "harness-fme",
       "description": "Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.",
       "category": "development",
       "source": {
@@ -41,7 +41,7 @@
       "homepage": "https://github.com/kud/mcp-harness-fme"
     },
     {
-      "name": "mcp-trakt",
+      "name": "trakt",
       "description": "Track what you're watching — search movies and shows, check in, browse your history, manage your watchlist, and get recommendations.",
       "category": "entertainment",
       "source": {
@@ -52,7 +52,7 @@
       "homepage": "https://github.com/kud/mcp-trakt"
     },
     {
-      "name": "mcp-raindrop-io",
+      "name": "raindrop-io",
       "description": "Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.",
       "category": "productivity",
       "source": {
@@ -63,7 +63,7 @@
       "homepage": "https://github.com/kud/mcp-raindrop-io"
     },
     {
-      "name": "mcp-google-keep",
+      "name": "google-keep",
       "description": "Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.",
       "category": "productivity",
       "source": {

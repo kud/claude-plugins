@@ -44,7 +44,7 @@ Install a plugin → get the MCP tools _and_ the skills in one shot.
 Add this marketplace to your Claude Code config so Claude can discover available plugins:
 
 ```
-/plugin marketplace add kud/claude-plugins
+/plugin marketplace add kud/claude-plugins  # registers as @kud
 ```
 
 ### 2. Set env vars for the plugin you want
@@ -68,17 +68,17 @@ Installing a plugin registers the MCP server from `plugin.json` and makes its sk
 **Personal plugins** (trakt, raindrop, opencode, google-keep) — install globally for your user:
 
 ```
-/plugin install mcp-opencode@kud-plugins --scope user
-/plugin install mcp-trakt@kud-plugins --scope user
-/plugin install mcp-raindrop-io@kud-plugins --scope user
-/plugin install mcp-google-keep@kud-plugins --scope user
+/plugin install opencode@kud --scope user
+/plugin install trakt@kud --scope user
+/plugin install raindrop-io@kud --scope user
+/plugin install google-keep@kud --scope user
 ```
 
 **Team plugins** (jenkins, harness-fme) — install at project scope to share with your team via `.claude/settings.json`:
 
 ```
-/plugin install mcp-jenkins@kud-plugins --scope project
-/plugin install mcp-harness-fme@kud-plugins --scope project
+/plugin install jenkins@kud --scope project
+/plugin install harness-fme@kud --scope project
 ```
 
 ### 4. Use a skill
@@ -303,14 +303,14 @@ mcp-google-keep/              ← github.com/kud/mcp-google-keep
 
 Each plugin points to a published package. All source code is on GitHub:
 
-| Plugin          | Package                                                                    | GitHub                                                        |
-| --------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| mcp-opencode    | [@kud/mcp-opencode](https://www.npmjs.com/package/@kud/mcp-opencode)       | [kud/mcp-opencode](https://github.com/kud/mcp-opencode)       |
-| mcp-jenkins     | [@kud/mcp-jenkins](https://www.npmjs.com/package/@kud/mcp-jenkins)         | [kud/mcp-jenkins](https://github.com/kud/mcp-jenkins)         |
-| mcp-harness-fme | [@kud/mcp-harness-fme](https://www.npmjs.com/package/@kud/mcp-harness-fme) | [kud/mcp-harness-fme](https://github.com/kud/mcp-harness-fme) |
-| mcp-trakt       | [@kud/mcp-trakt](https://www.npmjs.com/package/@kud/mcp-trakt)             | [kud/mcp-trakt](https://github.com/kud/mcp-trakt)             |
-| mcp-raindrop-io | [@kud/mcp-raindrop-io](https://www.npmjs.com/package/@kud/mcp-raindrop-io) | [kud/mcp-raindrop-io](https://github.com/kud/mcp-raindrop-io) |
-| mcp-google-keep | GitHub (Python / uvx)                                                      | [kud/mcp-google-keep](https://github.com/kud/mcp-google-keep) |
+| Plugin      | Package                                                                    | GitHub                                                        |
+| ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| opencode    | [@kud/mcp-opencode](https://www.npmjs.com/package/@kud/mcp-opencode)       | [kud/mcp-opencode](https://github.com/kud/mcp-opencode)       |
+| jenkins     | [@kud/mcp-jenkins](https://www.npmjs.com/package/@kud/mcp-jenkins)         | [kud/mcp-jenkins](https://github.com/kud/mcp-jenkins)         |
+| harness-fme | [@kud/mcp-harness-fme](https://www.npmjs.com/package/@kud/mcp-harness-fme) | [kud/mcp-harness-fme](https://github.com/kud/mcp-harness-fme) |
+| trakt       | [@kud/mcp-trakt](https://www.npmjs.com/package/@kud/mcp-trakt)             | [kud/mcp-trakt](https://github.com/kud/mcp-trakt)             |
+| raindrop-io | [@kud/mcp-raindrop-io](https://www.npmjs.com/package/@kud/mcp-raindrop-io) | [kud/mcp-raindrop-io](https://github.com/kud/mcp-raindrop-io) |
+| google-keep | GitHub (Python / uvx)                                                      | [kud/mcp-google-keep](https://github.com/kud/mcp-google-keep) |
 
 ---
 
