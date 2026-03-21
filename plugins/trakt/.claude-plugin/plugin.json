@@ -9,8 +9,8 @@
   "homepage": "https://github.com/kud/mcp-trakt",
   "license": "MIT",
   "setup": {
-    "instructions": "Authenticate with Trakt by running: npx @kud/mcp-trakt setup",
-    "command": "npx @kud/mcp-trakt setup"
+    "instructions": "Authenticate with Trakt by running: npx @kud/mcp-trakt@latest setup",
+    "command": "npx @kud/mcp-trakt@latest setup"
   },
   "mcpServers": {
     "mcp-trakt": {
