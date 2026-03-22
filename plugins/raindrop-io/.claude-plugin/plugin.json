@@ -13,7 +13,7 @@
       "command": "npx",
       "args": ["-y", "@kud/mcp-raindrop-io@latest"],
       "env": {
-        "RAINDROP_TOKEN": "${MCP_RAINDROPIO_TOKEN}"
+        "MCP_RAINDROPIO_TOKEN": "${MCP_RAINDROPIO_TOKEN}"
       }
     }
   }
