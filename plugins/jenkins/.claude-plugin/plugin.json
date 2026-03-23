@@ -13,9 +13,9 @@
       "command": "npx",
       "args": ["-y", "@kud/mcp-jenkins@latest"],
       "env": {
-        "JENKINS_URL": "${MCP_JENKINS_URL}",
-        "JENKINS_USER": "${MCP_JENKINS_USER}",
-        "JENKINS_TOKEN": "${MCP_JENKINS_TOKEN}"
+        "MCP_JENKINS_URL": "${MCP_JENKINS_URL}",
+        "MCP_JENKINS_USER": "${MCP_JENKINS_USER}",
+        "MCP_JENKINS_API_TOKEN": "${MCP_JENKINS_API_TOKEN}"
       }
     }
   }
