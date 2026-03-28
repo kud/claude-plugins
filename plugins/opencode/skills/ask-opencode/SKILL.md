@@ -15,9 +15,22 @@ If no argument was given, ask the user what they would like to send to opencode 
 
 If the user specifies a model (e.g. `/ask-opencode --model github-copilot/gpt-4o <question>`), use that model. Otherwise use the MCP server's default (call `list_models` if unsure what's available).
 
+## Step 1.5 — Inject repo context if relevant
+
+If the prompt references "this repo", "this project", "here", "audit", or similar context-dependent language, gather the following before sending and prepend it to the prompt:
+
+- Current working directory (absolute path)
+- Git repo root name and current branch (`git rev-parse --show-toplevel`, `git branch --show-current`)
+- Top-level file/directory listing
+- Contents of key config files if present (e.g. `package.json`, `CLAUDE.md`, `README.md` — truncated to ~50 lines each)
+
+Prepend this as a fenced block labelled `## Repo Context` before the user's prompt so opencode has accurate grounding.
+
+If the prompt is a general question with no repo reference, skip this step entirely.
+
 ## Step 2 — Send the prompt
 
-Call the `query` tool from the `opencode` MCP server with the resolved prompt and model.
+Call the `query` tool from the `opencode` MCP server with the resolved prompt (including any injected context) and model.
 
 ## Step 3 — Present the response
 
