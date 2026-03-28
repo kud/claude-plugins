@@ -178,33 +178,35 @@ This repo (`claude-plugins`) is a thin index that points to those repos.
 
 ## Skills
 
-**Total: 10 Skills across 6 plugins**
+**Total: 11 Skills across 7 plugins**
 
-| Plugin      | Skill               | Trigger                       | What it does                           |
-| ----------- | ------------------- | ----------------------------- | -------------------------------------- |
-| opencode    | ask-opencode        | `/ask-opencode <prompt>`      | Second opinion from a Copilot model    |
-| jenkins     | ci-diagnose         | `/ci-diagnose <job> [build]`  | Root cause analysis of a failing build |
-| jenkins     | build-watch         | `/build-watch <job>`          | Trigger + watch a build live           |
-| harness-fme | feature-flag-status | `/feature-flag-status <flag>` | Flag state across all environments     |
-| trakt       | trakt-whats-on      | `/trakt-whats-on`             | Watchlist + recently watched recap     |
-| trakt       | trakt-checkin       | `/trakt-checkin <title>`      | Check in to what you're watching       |
-| raindrop-io | bookmark-search     | `/bookmark-search <query>`    | Search your bookmarks                  |
-| raindrop-io | bookmark-save       | `/bookmark-save <url>`        | Save a URL to Raindrop.io              |
-| google-keep | keep-capture        | `/keep-capture <text>`        | Capture a thought to Google Keep       |
-| google-keep | keep-todo           | `/keep-todo <list>`           | Manage a Google Keep checklist         |
+| Plugin         | Skill               | Trigger                       | What it does                               |
+| -------------- | ------------------- | ----------------------------- | ------------------------------------------ |
+| github-copilot | ask-copilot         | `/ask-copilot <prompt>`       | Second opinion from a GitHub Copilot model |
+| opencode       | ask-opencode        | `/ask-opencode <prompt>`      | Second opinion from a Copilot model        |
+| jenkins        | ci-diagnose         | `/ci-diagnose <job> [build]`  | Root cause analysis of a failing build     |
+| jenkins        | build-watch         | `/build-watch <job>`          | Trigger + watch a build live               |
+| harness-fme    | feature-flag-status | `/feature-flag-status <flag>` | Flag state across all environments         |
+| trakt          | trakt-whats-on      | `/trakt-whats-on`             | Watchlist + recently watched recap         |
+| trakt          | trakt-checkin       | `/trakt-checkin <title>`      | Check in to what you're watching           |
+| raindrop-io    | bookmark-search     | `/bookmark-search <query>`    | Search your bookmarks                      |
+| raindrop-io    | bookmark-save       | `/bookmark-save <url>`        | Save a URL to Raindrop.io                  |
+| google-keep    | keep-capture        | `/keep-capture <text>`        | Capture a thought to Google Keep           |
+| google-keep    | keep-todo           | `/keep-todo <list>`           | Manage a Google Keep checklist             |
 
 ---
 
 ## MCP Servers
 
-| Plugin      | Package                                                                    | GitHub                                                        |
-| ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| opencode    | [@kud/mcp-opencode](https://www.npmjs.com/package/@kud/mcp-opencode)       | [kud/mcp-opencode](https://github.com/kud/mcp-opencode)       |
-| jenkins     | [@kud/mcp-jenkins](https://www.npmjs.com/package/@kud/mcp-jenkins)         | [kud/mcp-jenkins](https://github.com/kud/mcp-jenkins)         |
-| harness-fme | [@kud/mcp-harness-fme](https://www.npmjs.com/package/@kud/mcp-harness-fme) | [kud/mcp-harness-fme](https://github.com/kud/mcp-harness-fme) |
-| trakt       | [@kud/mcp-trakt](https://www.npmjs.com/package/@kud/mcp-trakt)             | [kud/mcp-trakt](https://github.com/kud/mcp-trakt)             |
-| raindrop-io | [@kud/mcp-raindrop-io](https://www.npmjs.com/package/@kud/mcp-raindrop-io) | [kud/mcp-raindrop-io](https://github.com/kud/mcp-raindrop-io) |
-| google-keep | GitHub (Python / uvx)                                                      | [kud/mcp-google-keep](https://github.com/kud/mcp-google-keep) |
+| Plugin         | Package                                                                          | GitHub                                                              |
+| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| github-copilot | [@kud/mcp-github-copilot](https://www.npmjs.com/package/@kud/mcp-github-copilot) | [kud/mcp-github-copilot](https://github.com/kud/mcp-github-copilot) |
+| opencode       | [@kud/mcp-opencode](https://www.npmjs.com/package/@kud/mcp-opencode)             | [kud/mcp-opencode](https://github.com/kud/mcp-opencode)             |
+| jenkins        | [@kud/mcp-jenkins](https://www.npmjs.com/package/@kud/mcp-jenkins)               | [kud/mcp-jenkins](https://github.com/kud/mcp-jenkins)               |
+| harness-fme    | [@kud/mcp-harness-fme](https://www.npmjs.com/package/@kud/mcp-harness-fme)       | [kud/mcp-harness-fme](https://github.com/kud/mcp-harness-fme)       |
+| trakt          | [@kud/mcp-trakt](https://www.npmjs.com/package/@kud/mcp-trakt)                   | [kud/mcp-trakt](https://github.com/kud/mcp-trakt)                   |
+| raindrop-io    | [@kud/mcp-raindrop-io](https://www.npmjs.com/package/@kud/mcp-raindrop-io)       | [kud/mcp-raindrop-io](https://github.com/kud/mcp-raindrop-io)       |
+| google-keep    | GitHub (Python / uvx)                                                            | [kud/mcp-google-keep](https://github.com/kud/mcp-google-keep)       |
 
 ---
 
