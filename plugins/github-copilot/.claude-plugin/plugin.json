@@ -1,7 +1,7 @@
 {
   "name": "github-copilot",
   "description": "Query GitHub Copilot models programmatically via the official SDK — no token setup required, uses your logged-in Copilot CLI credentials.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "kud",
     "url": "https://github.com/kud"
