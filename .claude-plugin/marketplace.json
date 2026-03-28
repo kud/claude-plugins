@@ -1,12 +1,12 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "kud",
-  "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, Raindrop.io, and Google Keep.",
+  "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, Raindrop.io, Google Keep, and GitHub Copilot.",
   "owner": {
     "name": "kud"
   },
   "metadata": {
-    "version": "1.1.1"
+    "version": "2.0.10"
   },
   "plugins": [
     {
@@ -50,6 +50,13 @@
       "description": "Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.",
       "source": "./plugins/google-keep",
       "category": "productivity"
+    },
+    {
+      "name": "github-copilot",
+      "version": "1.0.1",
+      "description": "Query GitHub Copilot models programmatically via the official SDK — no token setup required, uses your logged-in Copilot CLI credentials.",
+      "source": "./plugins/github-copilot",
+      "category": "ai"
     }
   ]
 }
