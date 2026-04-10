@@ -14,8 +14,8 @@
       "args": ["-y", "@kud/mcp-opencode@latest"],
       "timeout": 600000,
       "env": {
-        "OPENCODE_MODEL_ALLOW": "${MCP_OPENCODE_MODEL_ALLOW:-github-copilot/*}",
-        "OPENCODE_MODEL_BLOCK": "${MCP_OPENCODE_MODEL_BLOCK:-}"
+        "MCP_OPENCODE_MODEL_ALLOW": "${MCP_OPENCODE_MODEL_ALLOW:-github-copilot/*}",
+        "MCP_OPENCODE_MODEL_BLOCK": "${MCP_OPENCODE_MODEL_BLOCK:-}"
       }
     }
   }
