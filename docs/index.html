@@ -8,626 +8,372 @@
       name="description"
       content="A curated marketplace of Claude Code plugins. Each plugin bundles an MCP server with companion slash commands — install both in one shot."
     />
-    <meta property="og:title" content="Claude Plugins by kud" />
-    <meta
-      property="og:description"
-      content="Supercharge Claude Code with MCP servers and companion skills — jenkins, trakt, raindrop, google-keep, and more."
-    />
-    <meta property="og:type" content="website" />
-    <link rel="stylesheet" href="style.css" />
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c3aed'/><text y='22' x='5' font-size='18'>🔌</text></svg>"
-    />
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <!-- ── Navigation ─────────────────────────────────── -->
+    <!-- ── Nav ───────────────────────────────────────────── -->
     <nav id="nav">
       <div class="nav-inner">
-        <a class="nav-logo" href="#">
-          <span class="nav-logo-icon">🔌</span>
-          claude-plugins
-        </a>
+        <a class="nav-logo" href="#"><span>kud</span>/claude-plugins</a>
         <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#quickstart">Quick Start</a></li>
           <li><a href="#plugins">Plugins</a></li>
-          <li><a href="#how-it-works">How it works</a></li>
           <li><a href="#skills">Skills</a></li>
-          <li><a href="#install">Install</a></li>
         </ul>
         <a
           class="nav-cta"
           href="https://github.com/kud/claude-plugins"
           target="_blank"
           rel="noopener"
+          >GitHub ↗</a
         >
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-            <path
-              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
-            />
-          </svg>
-          View on GitHub
-        </a>
       </div>
     </nav>
 
-    <!-- ── Hero ───────────────────────────────────────── -->
-    <section class="hero">
-      <div class="hero-bg"></div>
-      <div class="hero-grid"></div>
-      <div class="hero-content">
-        <div class="hero-badge">
-          <span class="hero-badge-dot"></span>
-          v2.1.1 · MIT · Claude Code
-        </div>
-        <h1>Claude Plugins</h1>
-        <p>
-          MCP servers bundled with companion slash commands. Register once,
-          install any plugin in a single line.
-        </p>
-        <div class="hero-command">
-          <span class="hero-command-prefix">/plugin</span>
-          <span class="hero-command-text" id="hero-cmd-text"
-            >marketplace add kud/claude-plugins</span
-          >
-          <button
-            class="btn-copy"
-            id="hero-copy"
-            onclick="copyHeroCmd()"
-            aria-label="Copy command"
-          >
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-              <path
-                d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"
-              />
-              <path
-                d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"
-              />
-            </svg>
-            <span id="hero-copy-label">Copy</span>
-          </button>
-        </div>
-        <div class="stats">
-          <div class="stat">
-            <div class="stat-value">7</div>
-            <div class="stat-label">Plugins</div>
+    <main>
+      <!-- ── Hero ─────────────────────────────────────────── -->
+      <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-grid"></div>
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            v2.1.1 · MIT · Claude Code
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
-            <div class="stat-value">11</div>
-            <div class="stat-label">Skills</div>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
-            <div class="stat-value">4</div>
-            <div class="stat-label">Categories</div>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
-            <div class="stat-value">MIT</div>
-            <div class="stat-label">Licence</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Plugins ─────────────────────────────────────── -->
-    <section id="plugins">
-      <div class="container">
-        <div class="section-header reveal">
-          <span class="section-eyebrow">Marketplace</span>
-          <h2 class="section-title">Every plugin, ready to use</h2>
-          <p class="section-sub">
-            Each plugin ships its MCP server and slash commands together —
-            install one, get both.
+          <h1>Claude Plugins</h1>
+          <p>
+            MCP servers bundled with companion slash commands. Register once,
+            install any plugin in a single line.
           </p>
+          <div class="hero-ctas">
+            <a
+              class="btn btn-primary"
+              href="https://github.com/kud/claude-plugins"
+              target="_blank"
+              rel="noopener"
+              >View on GitHub</a
+            >
+            <a class="btn btn-ghost" href="#plugins">Browse Plugins ↓</a>
+          </div>
+          <div class="hero-command code-block">
+            <code>/plugin marketplace add kud/claude-plugins</code>
+            <button
+              class="copy-btn"
+              data-copy="/plugin marketplace add kud/claude-plugins"
+            >
+              Copy
+            </button>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-value">7</span>
+              <div class="stat-label">Plugins</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <span class="stat-value">11</span>
+              <div class="stat-label">Skills</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <span class="stat-value">4</span>
+              <div class="stat-label">Categories</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <span class="stat-value">MIT</span>
+              <div class="stat-label">Licence</div>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div
-          class="filter-tabs reveal"
-          role="group"
-          aria-label="Filter by category"
-        >
-          <button class="filter-tab active" data-filter="all">All</button>
-          <button class="filter-tab" data-filter="ai">AI</button>
-          <button class="filter-tab" data-filter="development">
-            Development
-          </button>
-          <button class="filter-tab" data-filter="productivity">
-            Productivity
-          </button>
-          <button class="filter-tab" data-filter="entertainment">
-            Entertainment
-          </button>
+      <!-- ── Features ─────────────────────────────────────── -->
+      <section id="features">
+        <div class="section-inner">
+          <span class="section-eyebrow reveal">Why Claude Plugins</span>
+          <h2 class="reveal">Everything you need, nothing you don't</h2>
+          <p class="section-sub reveal">
+            Each plugin is a ready-to-install unit — one command gets you the
+            MCP tools and the slash commands together.
+          </p>
+          <div class="features-grid">
+            <div class="feature-card reveal">
+              <div class="feature-icon">🔌</div>
+              <div class="feature-title">One command setup</div>
+              <p class="feature-desc">
+                Register the marketplace once, then install any plugin with a
+                single slash command. No config files, no build steps.
+              </p>
+            </div>
+            <div class="feature-card reveal">
+              <div class="feature-icon">🤖</div>
+              <div class="feature-title">AI second opinions</div>
+              <p class="feature-desc">
+                Query opencode and GitHub Copilot models without leaving your
+                Claude session — repo context injected automatically.
+              </p>
+            </div>
+            <div class="feature-card reveal">
+              <div class="feature-icon">🏗️</div>
+              <div class="feature-title">CI/CD in conversation</div>
+              <p class="feature-desc">
+                Trigger Jenkins builds, stream console logs live, and get
+                root-cause analysis on failing pipelines — all from Claude.
+              </p>
+            </div>
+            <div class="feature-card reveal">
+              <div class="feature-icon">🚩</div>
+              <div class="feature-title">Feature flag auditing</div>
+              <p class="feature-desc">
+                Inspect Harness FME flags across every environment, audit
+                targeting rules, and kill or restore flags in a single chat.
+              </p>
+            </div>
+            <div class="feature-card reveal">
+              <div class="feature-icon">📌</div>
+              <div class="feature-title">Productivity in context</div>
+              <p class="feature-desc">
+                Search and save Raindrop bookmarks, capture Google Keep notes,
+                and manage checklists without switching apps.
+              </p>
+            </div>
+            <div class="feature-card reveal">
+              <div class="feature-icon">🎬</div>
+              <div class="feature-title">Entertainment tracking</div>
+              <p class="feature-desc">
+                Check in to movies and shows, browse your Trakt watchlist, and
+                get recommendations — straight from the terminal.
+              </p>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div class="plugins-grid" id="plugins-grid">
-          <!-- cards injected by JS -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ── How it works ────────────────────────────────── -->
-    <section id="how-it-works" class="how-it-works">
-      <div class="container">
-        <div class="section-header reveal">
-          <span class="section-eyebrow">Setup</span>
-          <h2 class="section-title">Up and running in 3 steps</h2>
-          <p class="section-sub">
+      <!-- ── Quick Start ───────────────────────────────────── -->
+      <section id="quickstart">
+        <div class="section-inner">
+          <span class="section-eyebrow reveal">Get going fast</span>
+          <h2 class="reveal">Up and running in 3 steps</h2>
+          <p class="section-sub reveal">
             No build tools, no config files — just Claude Code slash commands.
           </p>
-        </div>
-        <div class="steps reveal">
-          <div class="step">
-            <div class="step-number">Step 01</div>
-            <h3>Register the marketplace</h3>
-            <p>
-              Point Claude Code at this repo so it can resolve
-              <code>@kud</code> plugin names.
-            </p>
-            <div class="step-code">
-              <span class="comment"># run once, globally</span>
-              /plugin marketplace add kud/claude-plugins
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-number">Step 02</div>
-            <h3>Install a plugin</h3>
-            <p>
-              Install for yourself (<code>--scope user</code>) or share with
-              your team (<code>--scope project</code>).
-            </p>
-            <div class="step-code">
-              <span class="comment"># personal tools</span>
-              /plugin install trakt@kud --scope user
+          <div class="code-block reveal">
+            <pre><code><span class="comment"># 1. Register the marketplace (once, globally)</span>
+<span class="cmd">/plugin marketplace add kud/claude-plugins</span>
 
-              <span class="comment"># shared team tools</span>
-              /plugin install jenkins@kud --scope project
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-number">Step 03</div>
-            <h3>Use a skill</h3>
-            <p>
-              Slash commands are immediately available. Most plugins also expose
-              raw MCP tools for direct use.
-            </p>
-            <div class="step-code">
-              <span class="comment"># then just use it</span> /ci-diagnose
-              my-service /trakt-whats-on /bookmark-search react hooks
-              /ask-copilot explain this
-            </div>
+<span class="comment"># 2. Install plugins</span>
+<span class="cmd">/plugin install trakt@kud --scope user</span>       <span class="comment"># personal tools</span>
+<span class="cmd">/plugin install jenkins@kud --scope project</span>  <span class="comment"># shared team tools</span>
+
+<span class="comment"># 3. Use a skill</span>
+<span class="cmd">/trakt-whats-on</span>
+<span class="output">→ Your watchlist, recently watched, and upcoming releases</span>
+
+<span class="cmd">/ci-diagnose my-service</span>
+<span class="output">→ Root-cause analysis of the latest failing build</span>
+
+<span class="cmd">/bookmark-search react hooks</span>
+<span class="output">→ Top 10 matching bookmarks from your Raindrop library</span></code></pre>
+            <button
+              class="copy-btn"
+              data-copy="/plugin marketplace add kud/claude-plugins"
+            >
+              Copy
+            </button>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ── Skills ──────────────────────────────────────── -->
-    <section id="skills" class="skills-section">
-      <div class="container">
-        <div class="section-header reveal">
-          <span class="section-eyebrow">Reference</span>
-          <h2 class="section-title">All 11 skills at a glance</h2>
-          <p class="section-sub">
-            Every plugin ships with ready-made workflows — no prompt engineering
-            required.
+      <!-- ── Plugins ───────────────────────────────────────── -->
+      <section id="plugins">
+        <div class="section-inner">
+          <span class="section-eyebrow reveal">Marketplace</span>
+          <h2 class="reveal">All 7 plugins</h2>
+          <p class="section-sub reveal">
+            Personal tools install with
+            <code>--scope user</code>, team tools with
+            <code>--scope project</code>.
           </p>
+          <div class="cli-list reveal">
+            <div class="cli-row">
+              <span class="cli-cmd">🤖 opencode</span>
+              <span class="cli-desc"
+                >Query any opencode-supported model from inside Claude — get a
+                second opinion without leaving your session.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">🐙 github-copilot</span>
+              <span class="cli-desc"
+                >Query GitHub Copilot models via the official SDK — no token
+                setup, uses your existing logged-in credentials.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">🏗️ jenkins</span>
+              <span class="cli-desc"
+                >Full Jenkins control — inspect builds, stream logs, trigger
+                pipelines, manage queues, and diagnose CI failures.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">🚩 harness-fme</span>
+              <span class="cli-desc"
+                >Inspect and control Harness FME feature flags — list
+                environments, audit targeting rules, kill or restore
+                flags.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">🔖 raindrop-io</span>
+              <span class="cli-desc"
+                >Manage your Raindrop.io bookmarks — search your library, save
+                new links, organise into collections, and tag.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">📝 google-keep</span>
+              <span class="cli-desc"
+                >Read and write Google Keep notes — capture thoughts, manage
+                checklists, and search by label, colour, or text.</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">🎬 trakt</span>
+              <span class="cli-desc"
+                >Track what you're watching — check in, browse history, manage
+                your watchlist, and get recommendations.</span
+              >
+            </div>
+          </div>
         </div>
-        <div class="skills-table-wrap reveal">
-          <table>
-            <thead>
-              <tr>
-                <th>Plugin</th>
-                <th>Skill</th>
-                <th>Trigger</th>
-                <th>What it does</th>
-              </tr>
-            </thead>
-            <tbody id="skills-tbody">
-              <!-- injected by JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ── Install ─────────────────────────────────────── -->
-    <section id="install" class="install-section">
-      <div class="container">
-        <div class="section-header reveal">
-          <span class="section-eyebrow">Installation</span>
-          <h2 class="section-title">Full install reference</h2>
-          <p class="section-sub">
-            Copy the commands for the plugins you want. Credentials are set
-            per-plugin.
+      <!-- ── Skills ────────────────────────────────────────── -->
+      <section id="skills">
+        <div class="section-inner">
+          <span class="section-eyebrow reveal">Reference</span>
+          <h2 class="reveal">All 11 skills</h2>
+          <p class="section-sub reveal">
+            Every plugin ships with ready-made slash command workflows — no
+            prompt engineering required.
           </p>
+          <div class="cli-list reveal">
+            <div class="cli-row">
+              <span class="cli-cmd">/ask-copilot &lt;prompt&gt;</span>
+              <span class="cli-desc"
+                >Second opinion from a GitHub Copilot model</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/ask-opencode &lt;prompt&gt;</span>
+              <span class="cli-desc"
+                >Second opinion from any opencode-supported model</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/ci-diagnose &lt;job&gt; [build]</span>
+              <span class="cli-desc"
+                >Root-cause analysis of a failing Jenkins build</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/build-watch &lt;job&gt;</span>
+              <span class="cli-desc"
+                >Trigger a build and watch it live with streaming status</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/feature-flag-status &lt;flag&gt;</span>
+              <span class="cli-desc"
+                >Full flag state report across all environments</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/bookmark-search &lt;query&gt;</span>
+              <span class="cli-desc"
+                >Search bookmarks by keyword, tag, or collection</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/bookmark-save &lt;url&gt;</span>
+              <span class="cli-desc"
+                >Save a URL to Raindrop.io with tags and collection</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/keep-capture &lt;text&gt;</span>
+              <span class="cli-desc"
+                >Quickly capture a thought or note to Google Keep</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/keep-todo &lt;list&gt;</span>
+              <span class="cli-desc"
+                >View and manage a Google Keep checklist</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/trakt-whats-on</span>
+              <span class="cli-desc"
+                >See your watchlist, recently watched, and upcoming</span
+              >
+            </div>
+            <div class="cli-row">
+              <span class="cli-cmd">/trakt-checkin &lt;title&gt;</span>
+              <span class="cli-desc"
+                >Check in to a movie or episode you're about to watch</span
+              >
+            </div>
+          </div>
         </div>
-        <div class="install-grid">
-          <div class="install-card reveal">
-            <h3>🤖 AI &amp; Coding</h3>
-            <p>
-              Get second opinions from other models without leaving your Claude
-              session.
-            </p>
-            <div class="code-block">
-              <button class="copy-block" onclick="copyBlock(this)">Copy</button>
-              <code
-                ><span class="kw">/plugin</span> install opencode@kud
-                <span class="str">--scope user</span>
-                <span class="kw">/plugin</span> install github-copilot@kud
-                <span class="str">--scope user</span></code
-              >
-            </div>
-          </div>
-          <div class="install-card reveal">
-            <h3>🏗️ Development</h3>
-            <p>Jenkins CI/CD control and Harness FME feature-flag auditing.</p>
-            <div class="code-block">
-              <button class="copy-block" onclick="copyBlock(this)">Copy</button>
-              <code
-                ><span class="kw">/plugin</span> install jenkins@kud
-                <span class="str">--scope project</span>
-                <span class="kw">/plugin</span> install harness-fme@kud
-                <span class="str">--scope project</span></code
-              >
-            </div>
-          </div>
-          <div class="install-card reveal">
-            <h3>📌 Productivity</h3>
-            <p>
-              Manage your Raindrop.io bookmarks and Google Keep notes from
-              anywhere.
-            </p>
-            <div class="code-block">
-              <button class="copy-block" onclick="copyBlock(this)">Copy</button>
-              <code
-                ><span class="kw">/plugin</span> install raindrop-io@kud
-                <span class="str">--scope user</span>
-                <span class="kw">/plugin</span> install google-keep@kud
-                <span class="str">--scope user</span></code
-              >
-            </div>
-          </div>
-          <div class="install-card reveal">
-            <h3>🎬 Entertainment</h3>
-            <p>
-              Track movies and shows, check in, and browse your watchlist in
-              conversation.
-            </p>
-            <div class="code-block">
-              <button class="copy-block" onclick="copyBlock(this)">Copy</button>
-              <code
-                ><span class="kw">/plugin</span> install trakt@kud
-                <span class="str">--scope user</span>
+      </section>
+    </main>
 
-                <span class="cm"># one-time setup</span>
-                npx @kud/mcp-trakt@latest setup</code
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Footer ──────────────────────────────────────── -->
+    <!-- ── Footer ────────────────────────────────────────────── -->
     <footer>
-      <div class="container">
-        <div class="footer-inner">
-          <a class="footer-logo" href="#">
-            <span class="footer-logo-icon">🔌</span>
-            claude-plugins
-          </a>
-          <ul class="footer-links">
-            <li>
-              <a
-                href="https://github.com/kud/claude-plugins"
-                target="_blank"
-                rel="noopener"
-                >GitHub</a
-              >
-            </li>
-            <li>
-              <a href="https://github.com/kud" target="_blank" rel="noopener"
-                >@kud</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://www.npmjs.com/~kud"
-                target="_blank"
-                rel="noopener"
-                >npm</a
-              >
-            </li>
-            <li>
-              <a href="https://claude.ai/code" target="_blank" rel="noopener"
-                >Claude Code</a
-              >
-            </li>
-          </ul>
-          <span class="footer-copy"
-            >MIT © kud · Made for Claude Code power users</span
+      <div class="footer-inner">
+        <span class="footer-name">kud/claude-plugins</span>
+        <nav class="footer-links">
+          <a href="https://github.com/kud/claude-plugins">GitHub</a>
+          <a href="https://github.com/kud">@kud</a>
+          <a href="https://github.com/kud/claude-plugins/blob/main/README.md"
+            >Docs</a
           >
-        </div>
+        </nav>
+        <span class="footer-copy">MIT Licence</span>
       </div>
     </footer>
 
     <script>
-      // ── Data ──────────────────────────────────────────
-      const PLUGINS = [
-        {
-          id: "github-copilot",
-          icon: "🐙",
-          name: "github-copilot",
-          version: "1.0.1",
-          category: "ai",
-          description:
-            "Query GitHub Copilot models programmatically — no token setup required, uses your existing logged-in Copilot CLI credentials.",
-          skills: ["/ask-copilot"],
-          npm: "https://www.npmjs.com/package/@kud/mcp-github-copilot",
-          github: "https://github.com/kud/mcp-github-copilot",
-        },
-        {
-          id: "opencode",
-          icon: "🤖",
-          name: "opencode",
-          version: "1.1.0",
-          category: "ai",
-          description:
-            "Query any opencode-supported model from inside Claude — get a second opinion without leaving your session.",
-          skills: ["/ask-opencode"],
-          npm: "https://www.npmjs.com/package/@kud/mcp-opencode",
-          github: "https://github.com/kud/mcp-opencode",
-        },
-        {
-          id: "jenkins",
-          icon: "🏗️",
-          name: "jenkins",
-          version: "1.1.0",
-          category: "development",
-          description:
-            "Full Jenkins control from Claude — inspect builds, stream console logs, trigger pipelines, manage queues, and diagnose CI failures.",
-          skills: ["/ci-diagnose", "/build-watch"],
-          npm: "https://www.npmjs.com/package/@kud/mcp-jenkins",
-          github: "https://github.com/kud/mcp-jenkins",
-        },
-        {
-          id: "harness-fme",
-          icon: "🚩",
-          name: "harness-fme",
-          version: "1.1.0",
-          category: "development",
-          description:
-            "Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.",
-          skills: ["/feature-flag-status"],
-          npm: "https://www.npmjs.com/package/@kud/mcp-harness-fme",
-          github: "https://github.com/kud/mcp-harness-fme",
-        },
-        {
-          id: "raindrop-io",
-          icon: "🔖",
-          name: "raindrop-io",
-          version: "1.1.1",
-          category: "productivity",
-          description:
-            "Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.",
-          skills: ["/bookmark-search", "/bookmark-save"],
-          npm: "https://www.npmjs.com/package/@kud/mcp-raindrop-io",
-          github: "https://github.com/kud/mcp-raindrop-io",
-        },
-        {
-          id: "google-keep",
-          icon: "📝",
-          name: "google-keep",
-          version: "1.1.0",
-          category: "productivity",
-          description:
-            "Read and write your Google Keep notes from Claude — capture thoughts, manage checklists, and search your notes by label, colour, or text.",
-          skills: ["/keep-capture", "/keep-todo"],
-          github: "https://github.com/kud/mcp-google-keep",
-          uvx: true,
-        },
-        {
-          id: "trakt",
-          icon: "🎬",
-          name: "trakt",
-          version: "1.1.0",
-          category: "entertainment",
-          description:
-            "Track what you're watching — search movies and shows, check in, browse your history, manage your watchlist, and get recommendations.",
-          skills: ["/trakt-whats-on", "/trakt-checkin"],
-          npm: "https://www.npmjs.com/package/@kud/mcp-trakt",
-          github: "https://github.com/kud/mcp-trakt",
-        },
-      ]
-
-      const SKILLS = [
-        {
-          plugin: "github-copilot",
-          cat: "ai",
-          skill: "ask-copilot",
-          trigger: "/ask-copilot <prompt>",
-          desc: "Second opinion from a GitHub Copilot model",
-        },
-        {
-          plugin: "opencode",
-          cat: "ai",
-          skill: "ask-opencode",
-          trigger: "/ask-opencode <prompt>",
-          desc: "Second opinion from any opencode-supported model",
-        },
-        {
-          plugin: "jenkins",
-          cat: "development",
-          skill: "ci-diagnose",
-          trigger: "/ci-diagnose <job> [build]",
-          desc: "Root-cause analysis of a failing Jenkins build",
-        },
-        {
-          plugin: "jenkins",
-          cat: "development",
-          skill: "build-watch",
-          trigger: "/build-watch <job>",
-          desc: "Trigger a build and watch it live with streaming status",
-        },
-        {
-          plugin: "harness-fme",
-          cat: "development",
-          skill: "feature-flag-status",
-          trigger: "/feature-flag-status <flag>",
-          desc: "Full flag state report across all environments",
-        },
-        {
-          plugin: "raindrop-io",
-          cat: "productivity",
-          skill: "bookmark-search",
-          trigger: "/bookmark-search <query>",
-          desc: "Search bookmarks by keyword, tag, or collection",
-        },
-        {
-          plugin: "raindrop-io",
-          cat: "productivity",
-          skill: "bookmark-save",
-          trigger: "/bookmark-save <url>",
-          desc: "Save a URL to Raindrop.io with tags and collection",
-        },
-        {
-          plugin: "google-keep",
-          cat: "productivity",
-          skill: "keep-capture",
-          trigger: "/keep-capture <text>",
-          desc: "Quickly capture a thought or note to Google Keep",
-        },
-        {
-          plugin: "google-keep",
-          cat: "productivity",
-          skill: "keep-todo",
-          trigger: "/keep-todo <list>",
-          desc: "View and manage a Google Keep checklist",
-        },
-        {
-          plugin: "trakt",
-          cat: "entertainment",
-          skill: "trakt-whats-on",
-          trigger: "/trakt-whats-on",
-          desc: "See your watchlist, recently watched, and upcoming",
-        },
-        {
-          plugin: "trakt",
-          cat: "entertainment",
-          skill: "trakt-checkin",
-          trigger: "/trakt-checkin <title>",
-          desc: "Check in to a movie or episode you're about to watch",
-        },
-      ]
-
-      // ── Render plugins ────────────────────────────────
-      const grid = document.getElementById("plugins-grid")
-
-      const catLabel = {
-        ai: "AI",
-        development: "Development",
-        productivity: "Productivity",
-        entertainment: "Entertainment",
-      }
-
-      PLUGINS.forEach((p) => {
-        const skillsHtml = p.skills
-          .map((s) => `<span class="skill-pill">${s}</span>`)
-          .join("")
-        const links = []
-        if (p.npm)
-          links.push(
-            `<a class="plugin-link" href="${p.npm}" target="_blank" rel="noopener"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 0v16h16V0zm14.5 14.5H8V8H6.5v6.5H1.5V1.5h13z"/></svg>npm</a>`,
-          )
-        if (p.github)
-          links.push(
-            `<a class="plugin-link" href="${p.github}" target="_blank" rel="noopener"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>`,
-          )
-        if (p.uvx) links.push(`<span class="plugin-link">uvx · Python</span>`)
-
-        const card = document.createElement("div")
-        card.className = "plugin-card reveal"
-        card.dataset.cat = p.category
-        card.innerHTML = `
-          <div class="plugin-card-header">
-            <div class="plugin-icon">${p.icon}</div>
-            <span class="plugin-category">${catLabel[p.category]}</span>
-          </div>
-          <div>
-            <div class="plugin-name">${p.name}</div>
-            <div class="plugin-version">v${p.version}</div>
-          </div>
-          <p class="plugin-description">${p.description}</p>
-          <div class="plugin-skills">${skillsHtml}</div>
-          <div class="plugin-links">${links.join("")}</div>
-        `
-        grid.appendChild(card)
-      })
-
-      // ── Render skills table ───────────────────────────
-      const tbody = document.getElementById("skills-tbody")
-      SKILLS.forEach((s) => {
-        const tr = document.createElement("tr")
-        tr.innerHTML = `
-          <td class="td-plugin"><span class="cat-badge cat-${s.cat}">${catLabel[s.cat]}</span></td>
-          <td class="td-skill"><code>/${s.skill}</code></td>
-          <td class="td-trigger"><code>${s.trigger}</code></td>
-          <td class="td-desc">${s.desc}</td>
-        `
-        tbody.appendChild(tr)
-      })
-
-      // ── Filter tabs ───────────────────────────────────
-      document.querySelectorAll(".filter-tab").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          document
-            .querySelectorAll(".filter-tab")
-            .forEach((b) => b.classList.remove("active"))
-          btn.classList.add("active")
-          const f = btn.dataset.filter
-          document.querySelectorAll(".plugin-card").forEach((card) => {
-            card.classList.toggle(
-              "hidden",
-              f !== "all" && card.dataset.cat !== f,
-            )
-          })
-        })
-      })
-
-      // ── Copy helpers ──────────────────────────────────
-      const copyText = (text, btn, labelEl) => {
-        navigator.clipboard.writeText(text).then(() => {
-          btn.classList.add("copied")
-          if (labelEl) labelEl.textContent = "Copied!"
-          else btn.textContent = "Copied!"
-          setTimeout(() => {
-            btn.classList.remove("copied")
-            if (labelEl) labelEl.textContent = "Copy"
-            else btn.textContent = "Copy"
-          }, 2000)
-        })
-      }
-
-      window.copyHeroCmd = () => {
-        const btn = document.getElementById("hero-copy")
-        const label = document.getElementById("hero-copy-label")
-        copyText("/plugin marketplace add kud/claude-plugins", btn, label)
-      }
-
-      window.copyBlock = (btn) => {
-        const code = btn.closest(".code-block").querySelector("code")
-        copyText(code.innerText, btn, null)
-      }
-
-      // ── Nav scroll effect ─────────────────────────────
+      // Nav scroll effect
       const nav = document.getElementById("nav")
       const onScroll = () =>
         nav.classList.toggle("scrolled", window.scrollY > 20)
       window.addEventListener("scroll", onScroll, { passive: true })
       onScroll()
 
-      // ── Scroll reveal ─────────────────────────────────
+      // Copy buttons
+      document.querySelectorAll(".copy-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const text =
+            btn.dataset.copy ||
+            btn.closest(".hero-command")?.querySelector("code")?.textContent ||
+            ""
+          navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = "Copied!"
+            btn.classList.add("copied")
+            setTimeout(() => {
+              btn.textContent = "Copy"
+              btn.classList.remove("copied")
+            }, 1800)
+          })
+        })
+      })
+
+      // Scroll reveal
       const observer = new IntersectionObserver(
         (entries) =>
           entries.forEach((e) => {
