@@ -886,6 +886,7 @@ td.td-desc {
   line-height: 2;
   display: block;
   white-space: pre;
+  padding-right: 72px;
 }
 
 .code-block .kw {
