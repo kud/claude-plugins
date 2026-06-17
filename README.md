@@ -37,12 +37,10 @@ Claude Code plugins bundle an **MCP server** + **companion skills** into a singl
 /plugin marketplace add kud/claude-plugins  # registers as @kud
 ```
 
-## 📖 Documentation
-
-Full usage, options, and examples live on the docs site:
-
-**→ [kud.io/projects/claude-plugins/docs](https://kud.io/projects/claude-plugins/docs)**
-
 ## License
 
 MIT © [kud](https://github.com/kud)
+
+---
+
+📚 **Full documentation → https://kud.io/projects/claude-plugins/docs**
