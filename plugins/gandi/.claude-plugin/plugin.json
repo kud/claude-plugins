@@ -1,0 +1,15 @@
+{
+  "name": "gandi",
+  "description": "Manage Gandi domains, DNS records, and web redirects from Claude — driven by the gandi CLI with structured JSON output.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/gandi-cli",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Install the CLI with `npm install -g @kud/gandi-cli`, then set GANDI_API_KEY to a Gandi Personal Access Token (scope it to 'Manage technical configuration' for DNS). Verify with: gandi doctor",
+    "command": "npm install -g @kud/gandi-cli"
+  }
+}

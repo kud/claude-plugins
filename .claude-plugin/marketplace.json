@@ -1,12 +1,12 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "kud",
-  "description": "A curated collection of Claude Code plugins for kud's MCP servers — opencode, Jenkins, Harness FME, Trakt, Raindrop.io, Google Keep, and GitHub Copilot.",
+  "description": "A curated collection of Claude Code plugins for kud's MCP servers and CLIs — opencode, Jenkins, Harness FME, Trakt, Raindrop.io, Google Keep, GitHub Copilot, and Gandi.",
   "owner": {
     "name": "kud"
   },
   "metadata": {
-    "version": "2.1.6"
+    "version": "2.2.0"
   },
   "plugins": [
     {
@@ -57,6 +57,13 @@
       "description": "Query GitHub Copilot models programmatically via the official SDK — no token setup required, uses your logged-in Copilot CLI credentials.",
       "source": "./plugins/github-copilot",
       "category": "ai"
+    },
+    {
+      "name": "gandi",
+      "version": "1.0.0",
+      "description": "Manage Gandi domains, DNS records, and web redirects from Claude — driven by the gandi CLI with structured JSON output.",
+      "source": "./plugins/gandi",
+      "category": "development"
     }
   ]
 }
