@@ -1,0 +1,15 @@
+{
+  "name": "revu",
+  "description": "Turn a revu code review into action — discuss, apply, or live-watch the line annotations you captured in the revu TUI.",
+  "version": "1.1.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/revu-cli",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Install the CLI with `npm install -g @kud/revu-cli`, then run `revu` in a git repo to annotate a diff (press ↵ on a line). The skills read the annotations revu autosaves to .revu.json. Verify with: revu --help",
+    "command": "npm install -g @kud/revu-cli"
+  }
+}

@@ -1,38 +1,51 @@
 ---
 name: discuss
-description: "Reads the revu review export (revu-review.md) or autosave (.revu.json) from the current directory, presents the annotated diff comments for AI review discussion, then asks whether to delete the export file."
+description: "Reads the annotations you captured in revu (from .revu.json, via a live headless export) and talks the review through as a senior engineer — leading with blockers, respecting triage state — then offers to clean up any export file."
 ---
 
-## Step 1 — Find the review data
+You are discussing a code review the user captured with revu. Talk it through — you do not implement here (that is the `implement` skill). Lead with the most severe items and honour the user's triage.
 
-Look for `revu-review.md` in the current directory first. If it exists, use it (it contains an optional AI prompt followed by the annotated diff).
+## Step 1 — Get the review data
 
-If `revu-review.md` does not exist, fall back to `.revu.json` and parse it as structured JSON (`{ comments: [{ file, startLine, endLine, text }] }`).
+Prefer the live, structured export — it carries severity, status, source, and the captured code range, and never needs a file:
 
-If neither file exists, tell the user:
+```sh
+revu --export --format json --out -
+```
 
-"No review found. Run revu, annotate the diff, then press `e` to export to `revu-review.md`."
+Run that in the current directory (add `--against <branch>` if the user is reviewing a PR branch). It prints JSON: `{ prompt, comments: [{ file, startLine, endLine, side, severity, status, source, text, code }] }`.
+
+Fallbacks, in order, if that command is unavailable or errors:
+
+1. Read `.revu.json` directly (revu autosaves it on every annotation — same fields, minus `code`).
+2. Read `revu-review.md` (the markdown export; parse the annotated sections).
+
+If none exist, tell the user:
+
+"No revu review found. Run `revu` in this repo, annotate the diff (press `↵` on a line), and I'll pick it up — no export needed."
 
 Then stop.
 
-## Step 2 — Read the review prompt (if present)
+## Step 2 — Read the review prompt
 
-If reading `revu-review.md`, check whether it starts with a prompt section before the `---` separator. If so, treat that text as the user's intent for the review — use it to frame your responses throughout the discussion.
+If a `prompt` is present (JSON `prompt` field, or the text before the `---` in `revu-review.md`), treat it as the user's intent for the review and let it frame your responses.
 
-## Step 3 — Discuss each annotated section
+## Step 3 — Order and filter by triage
 
-Work through each annotation the user left. For each one:
+- **Skip** annotations whose `status` is `dismissed` or `resolved` unless the user explicitly asks to include them — the user has already triaged those away.
+- **Order** the rest by severity: `blocker` → `concern` → `nitpick` → unset. Discuss blockers first.
+- Note the `source`: an annotation with `source: "agent"` came from another AI pass — treat it as a proposal the human is triaging, not a settled decision.
 
-- Acknowledge what the user has flagged
-- Respond as a senior code reviewer: surface concrete risks, suggest specific improvements, and ask clarifying questions where the intent behind a change is unclear
-- Reference the actual code shown in the snippet — be precise, not generic
+## Step 4 — Discuss each annotation
 
-Treat the user's annotations as the primary input. Do not produce a general review of the whole diff; only engage with what the user has marked.
+Work through the surviving annotations in severity order. For each:
 
-## Step 4 — Offer to delete the export file
+- Name it by `file` and line(s), and its severity if set (e.g. "**blocker** — src/auth.ts:42").
+- Respond as a senior reviewer: surface concrete risks, suggest specific improvements, and ask a clarifying question where the intent is unclear.
+- Reference the actual `code` in the snippet — be precise, not generic.
 
-After the full discussion, ask:
+Treat the user's annotations as the only agenda. Do not produce a general review of the whole diff; engage only with what they marked.
 
-"Delete `revu-review.md`?"
+## Step 5 — Offer to clean up
 
-If the user confirms yes, delete it using `trash revu-review.md` (fallback: `rm revu-review.md`). Do not delete `.revu.json` — that is the autosave and should persist across sessions.
+If you read `revu-review.md`, ask at the end: "Delete `revu-review.md`?" — and if yes, remove it with `trash revu-review.md` (fallback `rm`). Never delete `.revu.json`: it is the live autosave and must persist across sessions.
