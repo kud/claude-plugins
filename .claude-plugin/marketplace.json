@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.2.0"
+    "version": "2.3.0"
   },
   "plugins": [
     {
@@ -71,6 +71,13 @@
       "description": "Search and fetch freely-licensed photos from Unsplash — keyword search, random photos, full metadata, collections, and editorial topics.",
       "source": "./plugins/unsplash",
       "category": "productivity"
+    },
+    {
+      "name": "revu",
+      "version": "1.1.0",
+      "description": "Turn a revu code review into action — discuss, apply, or live-watch the line annotations you captured in the revu TUI.",
+      "source": "./plugins/revu",
+      "category": "development"
     }
   ]
 }
