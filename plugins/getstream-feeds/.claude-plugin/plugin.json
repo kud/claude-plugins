@@ -1,0 +1,18 @@
+{
+  "name": "getstream-feeds",
+  "description": "Debug and inspect GetStream feed subscriptions and activities — check who follows what, inspect activity fan-out, and manage feed subscriptions.",
+  "version": "1.0.0",
+  "author": { "name": "kud", "url": "https://github.com/kud" },
+  "homepage": "https://github.com/kud/mcp-getstream-feeds",
+  "license": "MIT",
+  "mcpServers": {
+    "mcp-getstream-feeds": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-getstream-feeds@latest"],
+      "env": {
+        "MCP_GETSTREAM_API_KEY": "${MCP_GETSTREAM_API_KEY}",
+        "MCP_GETSTREAM_API_SECRET": "${MCP_GETSTREAM_API_SECRET}"
+      }
+    }
+  }
+}
