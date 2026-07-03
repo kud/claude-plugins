@@ -64,6 +64,13 @@
       "description": "Manage Gandi domains, DNS records, and web redirects from Claude — driven by the gandi CLI with structured JSON output.",
       "source": "./plugins/gandi",
       "category": "development"
+    },
+    {
+      "name": "unsplash",
+      "version": "2.0.0",
+      "description": "Search and fetch freely-licensed photos from Unsplash — keyword search, random photos, full metadata, collections, and editorial topics.",
+      "source": "./plugins/unsplash",
+      "category": "productivity"
     }
   ]
 }

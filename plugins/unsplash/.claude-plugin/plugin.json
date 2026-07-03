@@ -1,0 +1,26 @@
+{
+  "name": "unsplash",
+  "description": "Search and fetch freely-licensed photos from Unsplash — keyword search, random photos, full metadata, collections, and editorial topics.",
+  "version": "2.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-unsplash",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Get a free Unsplash Access Key at https://unsplash.com/developers and export it as MCP_UNSPLASH_ACCESS_KEY."
+  },
+  "mcpServers": {
+    "mcp-unsplash": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@kud/mcp-unsplash@latest"
+      ],
+      "env": {
+        "MCP_UNSPLASH_ACCESS_KEY": "${MCP_UNSPLASH_ACCESS_KEY}"
+      }
+    }
+  }
+}
