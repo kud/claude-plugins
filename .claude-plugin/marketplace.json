@@ -67,7 +67,7 @@
     },
     {
       "name": "unsplash",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "description": "Search and fetch freely-licensed photos from Unsplash — keyword search, random photos, full metadata, collections, and editorial topics.",
       "source": "./plugins/unsplash",
       "category": "productivity"
