@@ -1,0 +1,23 @@
+{
+  "name": "lastfm",
+  "description": "Discover artists, albums and tracks on Last.fm, and browse scrobble history, top charts, and personal listening stats.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-lastfm",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Get a free API key at https://www.last.fm/api/account/create and export it as MCP_LASTFM_API_KEY."
+  },
+  "mcpServers": {
+    "mcp-lastfm": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-lastfm@latest"],
+      "env": {
+        "MCP_LASTFM_API_KEY": "${MCP_LASTFM_API_KEY}"
+      }
+    }
+  }
+}
