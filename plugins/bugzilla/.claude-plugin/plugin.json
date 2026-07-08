@@ -1,0 +1,24 @@
+{
+  "name": "bugzilla",
+  "description": "Search, triage and comment on Firefox/Mozilla bugs from Claude via the Bugzilla REST API.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-bugzilla",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Read-only access needs no credentials. For write access (filing bugs, commenting, tagging, updating), get an API key from your Bugzilla API Keys preferences page (https://bugzilla.mozilla.org/userprefs.cgi?tab=apikey) and set MCP_BUGZILLA_API_KEY. Set MCP_BUGZILLA_BASE_URL only if you're pointing at a self-hosted Bugzilla instance instead of bugzilla.mozilla.org."
+  },
+  "mcpServers": {
+    "mcp-bugzilla": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-bugzilla@latest"],
+      "env": {
+        "MCP_BUGZILLA_API_KEY": "${MCP_BUGZILLA_API_KEY}",
+        "MCP_BUGZILLA_BASE_URL": "${MCP_BUGZILLA_BASE_URL:-https://bugzilla.mozilla.org/rest}"
+      }
+    }
+  }
+}

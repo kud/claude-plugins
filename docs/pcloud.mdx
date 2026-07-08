@@ -1,0 +1,46 @@
+---
+title: ☁️ pcloud
+description: Recover lost pCloud files from Claude — browse and restore from trash, rewind to older versions, manage revisions, and handle folders, shares, and public links.
+---
+
+The **pcloud** plugin wraps the
+[`@kud/mcp-pcloud`](https://www.npmjs.com/package/@kud/mcp-pcloud) MCP server —
+
+recover lost pCloud files from Claude: browse and restore from trash, rewind
+to older versions, revert revisions, and manage folders, shares, and public
+links.
+
+## 🧰 What it bundles
+
+| Skill             | Trigger                          | What it does                                                                                               |
+| ----------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `/pcloud-recover` | `/pcloud-recover <file or path>` | Find a lost/deleted file and restore it from trash or an older version, with confirmation before restoring |
+
+## 📦 Install
+
+```
+/plugin install pcloud@kud --scope user
+```
+
+## 🔧 Configuration
+
+Authentication is resolved from environment variables. Set one of:
+
+```
+MCP_PCLOUD_TOKEN=your-pcloud-token
+```
+
+or, for OAuth credentials instead of a plain token:
+
+```
+MCP_PCLOUD_CLIENT_ID=your-client-id
+MCP_PCLOUD_CLIENT_SECRET=your-client-secret
+```
+
+`MCP_PCLOUD_TOKEN` is the simplest option — set it in your shell profile or
+`.claude/settings.json` env block.
+
+## 🔗 Links
+
+- npm: [`@kud/mcp-pcloud`](https://www.npmjs.com/package/@kud/mcp-pcloud)
+- GitHub: [kud/mcp-pcloud](https://github.com/kud/mcp-pcloud)

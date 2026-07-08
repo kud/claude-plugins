@@ -1,0 +1,21 @@
+{
+  "name": "bsky",
+  "description": "Search, read, and post to Bluesky from Claude — browse your timeline and notifications, read profiles and threads, and publish posts, replies, and threads with a confirmation gate before anything goes live.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-bsky",
+  "license": "MIT",
+  "mcpServers": {
+    "mcp-bsky": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-bsky@latest"],
+      "env": {
+        "BLUESKY_HANDLE": "${BLUESKY_HANDLE}",
+        "BLUESKY_APP_PASSWORD": "${BLUESKY_APP_PASSWORD}"
+      }
+    }
+  }
+}

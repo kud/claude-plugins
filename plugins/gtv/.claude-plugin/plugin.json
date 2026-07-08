@@ -1,0 +1,21 @@
+{
+  "name": "gtv",
+  "description": "Control your Google TV from Claude — list paired devices, read live state, send remote keys, type into search fields, and launch apps.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-gtv",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Pair your TV once via gtv-cli — the paired device is written to ~/.config/gtv/config.json, which this server reads automatically: npx @kud/gtv-cli@latest pair",
+    "command": "npx @kud/gtv-cli@latest pair"
+  },
+  "mcpServers": {
+    "mcp-gtv": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-gtv@latest"]
+    }
+  }
+}

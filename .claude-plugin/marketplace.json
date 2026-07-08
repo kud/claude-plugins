@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.4.0"
+    "version": "2.5.0"
   },
   "plugins": [
     {
@@ -85,6 +85,41 @@
       "description": "Explore your Qobuz music from Claude — search albums, artists, and tracks, browse your favourites and playlists, see what's playing, and get personalised listening recommendations.",
       "source": "./plugins/qobuz",
       "category": "entertainment"
+    },
+    {
+      "name": "bsky",
+      "version": "1.0.0",
+      "description": "Search, read, and post to Bluesky from Claude — browse your timeline and notifications, read profiles and threads, and publish posts, replies, and threads with a confirmation gate before anything goes live.",
+      "source": "./plugins/bsky",
+      "category": "productivity"
+    },
+    {
+      "name": "bugzilla",
+      "version": "1.0.0",
+      "description": "Search, triage and comment on Firefox/Mozilla bugs from Claude via the Bugzilla REST API.",
+      "source": "./plugins/bugzilla",
+      "category": "development"
+    },
+    {
+      "name": "gtv",
+      "version": "1.0.0",
+      "description": "Control your Google TV from Claude — list paired devices, read live state, send remote keys, type into search fields, and launch apps.",
+      "source": "./plugins/gtv",
+      "category": "entertainment"
+    },
+    {
+      "name": "pcloud",
+      "version": "1.0.0",
+      "description": "Recover lost pCloud files from Claude — browse and restore from trash, rewind to older versions, manage revisions, and handle folders, shares, and public links.",
+      "source": "./plugins/pcloud",
+      "category": "productivity"
+    },
+    {
+      "name": "getstream-feeds",
+      "version": "1.0.0",
+      "description": "Debug and inspect GetStream feed subscriptions and activities from Claude — check who follows what, inspect activity fan-out, and repair missing notifications.",
+      "source": "./plugins/getstream-feeds",
+      "category": "development"
     }
   ]
 }

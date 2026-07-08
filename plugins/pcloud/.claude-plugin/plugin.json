@@ -1,0 +1,20 @@
+{
+  "name": "pcloud",
+  "description": "Recover lost pCloud files from Claude — browse and restore from trash, rewind to older versions, manage revisions, and handle folders, shares, and public links.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-pcloud",
+  "license": "MIT",
+  "mcpServers": {
+    "mcp-pcloud": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-pcloud@latest"],
+      "env": {
+        "MCP_PCLOUD_TOKEN": "${MCP_PCLOUD_TOKEN}"
+      }
+    }
+  }
+}
