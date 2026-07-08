@@ -9,14 +9,15 @@
   "homepage": "https://github.com/kud/mcp-lastfm",
   "license": "MIT",
   "setup": {
-    "instructions": "Get a free API key at https://www.last.fm/api/account/create and export it as MCP_LASTFM_API_KEY."
+    "instructions": "Get a free API key at https://www.last.fm/api/account/create and export it as MCP_LASTFM_API_KEY. Optionally set MCP_LASTFM_USERNAME to your Last.fm username so the user tools (recent tracks, top artists, loved tracks, recommendations) default to your own account."
   },
   "mcpServers": {
     "mcp-lastfm": {
       "command": "npx",
       "args": ["-y", "@kud/mcp-lastfm@latest"],
       "env": {
-        "MCP_LASTFM_API_KEY": "${MCP_LASTFM_API_KEY}"
+        "MCP_LASTFM_API_KEY": "${MCP_LASTFM_API_KEY}",
+        "MCP_LASTFM_USERNAME": "${MCP_LASTFM_USERNAME}"
       }
     }
   }
