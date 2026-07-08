@@ -1,0 +1,21 @@
+{
+  "name": "qobuz",
+  "description": "Explore your Qobuz music from Claude — search albums, artists, and tracks, browse your favourites and playlists, see what's playing, and get personalised listening recommendations.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-qobuz",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Log in to Qobuz once so the server can read your session from the macOS Keychain: npx @kud/qobuz-cli@latest login",
+    "command": "npx @kud/qobuz-cli@latest login"
+  },
+  "mcpServers": {
+    "mcp-qobuz": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-qobuz@latest"]
+    }
+  }
+}

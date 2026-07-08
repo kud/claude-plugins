@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.3.0"
+    "version": "2.4.0"
   },
   "plugins": [
     {
@@ -78,6 +78,13 @@
       "description": "Turn a revu code review into action — discuss, apply, or live-watch the line annotations you captured in the revu TUI.",
       "source": "./plugins/revu",
       "category": "development"
+    },
+    {
+      "name": "qobuz",
+      "version": "1.0.0",
+      "description": "Explore your Qobuz music from Claude — search albums, artists, and tracks, browse your favourites and playlists, see what's playing, and get personalised listening recommendations.",
+      "source": "./plugins/qobuz",
+      "category": "entertainment"
     }
   ]
 }
