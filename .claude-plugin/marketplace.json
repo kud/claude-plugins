@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.5.0"
+    "version": "2.5.1"
   },
   "plugins": [
     {
@@ -106,13 +106,6 @@
       "description": "Control your Google TV from Claude — list paired devices, read live state, send remote keys, type into search fields, and launch apps.",
       "source": "./plugins/gtv",
       "category": "entertainment"
-    },
-    {
-      "name": "pcloud",
-      "version": "1.0.0",
-      "description": "Recover lost pCloud files from Claude — browse and restore from trash, rewind to older versions, manage revisions, and handle folders, shares, and public links.",
-      "source": "./plugins/pcloud",
-      "category": "productivity"
     },
     {
       "name": "getstream-feeds",

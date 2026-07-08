@@ -1,11 +1,11 @@
 ---
-name: bug-search
+name: bugzilla-search
 description: "Search Firefox/Mozilla bugs by product, component, status, severity, or free-text query. Use this to find bugs matching a topic, component, or keyword."
 ---
 
 ## Step 1 — Resolve the search criteria
 
-If the user gave a free-text phrase (e.g. `/bug-search crash on startup`), treat it
+If the user gave a free-text phrase (e.g. `/bugzilla-search crash on startup`), treat it
 as a `quicksearch` query — Bugzilla's quicksearch syntax already understands
 product/component shorthand, status keywords, and free text combined.
 

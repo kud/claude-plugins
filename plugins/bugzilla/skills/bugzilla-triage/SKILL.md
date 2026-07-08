@@ -1,11 +1,11 @@
 ---
-name: bug-triage
+name: bugzilla-triage
 description: "Search a set of Firefox/Mozilla bugs, summarise their state and recent activity, and propose triage actions (comment, reassign, mark duplicate, change status). Use this to work through a backlog for a product or component."
 ---
 
 ## Step 1 — Resolve the scope
 
-If the user gave explicit bug IDs (e.g. `/bug-triage 1234567 1234599`), use
+If the user gave explicit bug IDs (e.g. `/bugzilla-triage 1234567 1234599`), use
 those directly — skip to Step 3.
 
 Otherwise resolve a search scope: product, component, status, severity, or a
