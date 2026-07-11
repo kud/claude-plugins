@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.5.2"
+    "version": "2.6.0"
   },
   "plugins": [
     {
@@ -119,6 +119,13 @@
       "version": "1.0.0",
       "description": "Discover artists, albums and tracks on Last.fm, and browse scrobble history, top charts, and personal listening stats.",
       "source": "./plugins/lastfm",
+      "category": "entertainment"
+    },
+    {
+      "name": "youtube",
+      "version": "1.0.0",
+      "description": "Manage your YouTube playlists from Claude — search videos, create and edit playlists, and clean up duplicate or deleted-video entries with a dry-run-safe cleanup tool.",
+      "source": "./plugins/youtube",
       "category": "entertainment"
     }
   ]

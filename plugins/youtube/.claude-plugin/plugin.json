@@ -1,0 +1,21 @@
+{
+  "name": "youtube",
+  "description": "Manage your YouTube playlists from Claude — search videos, create and edit playlists, and clean up duplicate or deleted-video entries with a dry-run-safe cleanup tool.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-youtube",
+  "license": "MIT",
+  "setup": {
+    "instructions": "Requires a Google Cloud OAuth client (type: Desktop app) with the YouTube Data API v3 enabled. Clone the repo and run the interactive setup once — it opens a browser consent flow and saves your client ID, client secret, and refresh token to ~/.config/youtube.json: git clone https://github.com/kud/mcp-youtube && cd mcp-youtube && npm install && npm run setup",
+    "command": "git clone https://github.com/kud/mcp-youtube && cd mcp-youtube && npm install && npm run setup"
+  },
+  "mcpServers": {
+    "mcp-youtube": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-youtube@latest"]
+    }
+  }
+}
