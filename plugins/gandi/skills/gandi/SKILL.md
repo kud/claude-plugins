@@ -17,6 +17,14 @@ object (`{ "ok": true, ... }`); errors print `{ "error": "..." }` to **stderr**
 with a non-zero exit code. Parse the JSON — never scrape the human-formatted
 tables.
 
+## Interactive mode
+
+Running `gandi` with no arguments (added in 0.7.0) opens an interactive
+terminal browser — a domain picker, then DNS / Redirects / Info tabs for the
+chosen domain, with inline editing. That's for a human at a terminal; for
+scripted or programmatic use the subcommands below are unchanged and remain
+the right choice.
+
 ## Commands
 
 **DNS**
@@ -39,9 +47,25 @@ tables.
 
 **Redirects (web forwarding)**
 
-- `gandi redirect list <domain> --json`
+- `gandi redirect list <domain> --json` — pages through all redirects; no
+  longer capped at the first 50 (fixed in 0.6.1).
 - `gandi redirect add <domain> <source> <target> [--type http301|http302|cloak] --json`
+- `gandi redirect update <domain> <source> [target] [--type http301|http302|cloak] [--protocol http|https|httpsonly] [--override|--no-override] --json` —
+  updates a redirect **in place** via the API's PATCH route, sending only the
+  fields you pass. That makes it the right way to change a redirect's target:
+  unlike delete-then-add, it preserves the Gandi-issued TLS certificate and
+  leaves `protocol` untouched unless you set it. Passing nothing to change is
+  an error, not a no-op. It **cannot** move a redirect to a different source
+  host — Gandi's PATCH has no `host` field — so retargeting a subdomain still
+  needs `delete` + `add`.
 - `gandi redirect delete <domain> <source> --yes --json`
+
+`<source>` is the redirect's fully-qualified host (e.g. `www.example.com`) —
+the same identifier Gandi returns in the list response and uses in the
+`{host}` path segment, not a bare label like `www`. The CLI accepts either
+spelling and normalises to the FQDN (since 0.6.0), but always prefer writing
+the FQDN: the pre-0.6.0 CLI sent a bare label straight through and the API
+rejected it with HTTP 400.
 
 ## Safety
 
