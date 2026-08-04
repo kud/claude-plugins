@@ -5,7 +5,7 @@ description: "Sends a prompt to a GitHub Copilot model and presents the response
 
 ## Available models
 
-Call the `list_models` tool from the `mcp-github-copilot` MCP server to get the current list of allowed models at runtime.
+Call the `list_models` tool from the `github-copilot` MCP server to get the current list of allowed models at runtime.
 
 ## Step 1 — Resolve the prompt and model
 
@@ -30,7 +30,7 @@ If the prompt is a general question with no repo reference, skip this step entir
 
 ## Step 2 — Send the prompt
 
-Call the `query` tool from the `mcp-github-copilot` MCP server with the resolved prompt (including any injected context) and model.
+Call the `query` tool from the `github-copilot` MCP server with the resolved prompt (including any injected context) and model.
 
 ## Step 3 — Present the response
 

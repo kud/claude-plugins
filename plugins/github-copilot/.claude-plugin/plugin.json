@@ -1,7 +1,7 @@
 {
   "name": "github-copilot",
   "description": "Query GitHub Copilot models programmatically via the official SDK — no token setup required, uses your logged-in Copilot CLI credentials.",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": {
     "name": "kud",
     "url": "https://github.com/kud"
@@ -9,7 +9,7 @@
   "homepage": "https://github.com/kud/mcp-github-copilot",
   "license": "MIT",
   "mcpServers": {
-    "mcp-github-copilot": {
+    "github-copilot": {
       "command": "npx",
       "args": ["-y", "@kud/mcp-github-copilot@latest"],
       "timeout": 600000
