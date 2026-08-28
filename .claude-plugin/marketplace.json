@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.6.1"
+    "version": "2.7.0"
   },
   "plugins": [
     {
@@ -39,7 +39,7 @@
     },
     {
       "name": "raindrop-io",
-      "version": "1.2.0",
+      "version": "2.0.0",
       "description": "Manage your Raindrop.io bookmarks from Claude — search your library, save new links, organise into collections, and tag.",
       "source": "./plugins/raindrop-io",
       "category": "productivity"
