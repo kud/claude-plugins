@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.7.0"
+    "version": "2.7.1"
   },
   "plugins": [
     {
@@ -25,7 +25,7 @@
     },
     {
       "name": "harness-fme",
-      "version": "1.2.0",
+      "version": "1.6.0",
       "description": "Inspect and control Harness FME feature flags — list environments, audit targeting rules, and kill or restore flags in a single conversation.",
       "source": "./plugins/harness-fme",
       "category": "development"
