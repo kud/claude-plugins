@@ -52,17 +52,19 @@ Do not paraphrase, edit, or interpret the output — show it exactly as returned
 
 ## Step 5 — Find the session (session path)
 
-Call `list_sessions({directory?})` on the `opencode` MCP server.
+Call `list_sessions({directory?})` on the `opencode` MCP server. It auto-discovers every opencode window listening on a local port, so it lists sessions from all of them at once — each line includes `port <n>` (or several ports, when the same project is open in two windows).
 
 - If the user gave an id, use that session.
-- Otherwise pick the most recently updated session. If sessions span multiple directories and it isn't obvious which one the user means, ask rather than guess.
-- If the list is empty or the call errors, tell the user opencode isn't reachable: they need `opencode --port 4096` running (a random port won't be found), with at least one message already typed in the TUI so the session exists — then stop.
+- Otherwise, if sessions span multiple directories/ports and it isn't obvious which one the user means, ask — or pick the one matching the current project directory when that's unambiguous.
+- If the list is empty or the call errors, tell the user opencode isn't reachable: they need to start opencode with `oc` (or `opencode --port <free port>`), then type a first message so the session exists — then stop. A plain `opencode` opens no port and is invisible to the MCP.
 
 ## Step 6 — Send the message
 
-Call `send({session_id, prompt, agent, timeout_seconds?})`.
+Call `send({session_id, prompt, agent, timeout_seconds?, port?})`.
 
 Default `agent` to `"plan"` — the default `build` agent can edit files on disk, so only pass a different agent when the user names one explicitly.
+
+By default `send` routes to the window that owns the session (lowest port if the same session shows on several) — only pass `port` when the user names a specific window.
 
 The message appears live in the user's opencode TUI, same as if they'd typed it — never invent or discard a session.
 
@@ -70,7 +72,7 @@ If the call times out ("Still running … use read"), go to Step 7 to catch up i
 
 ## Step 7 — Catch up
 
-When the user asks for the latest, or after a "still running" timeout, call `read({session_id, limit?})` for a condensed transcript instead of re-sending the prompt.
+When the user asks for the latest, or after a "still running" timeout, call `read({session_id, limit?, port?})` for a condensed transcript instead of re-sending the prompt. Same `port` rule as Step 6.
 
 ## Step 8 — Present the reply
 
