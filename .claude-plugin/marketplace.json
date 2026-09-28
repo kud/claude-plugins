@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "opencode",
-      "version": "1.2.1",
+      "version": "1.3.0",
       "description": "Query any opencode-supported model from inside Claude — get a second opinion without leaving your session.",
       "source": "./plugins/opencode",
       "category": "ai"
