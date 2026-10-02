@@ -48,69 +48,9 @@ worktree. See the MCP's
 [tools reference](https://kud.io/projects/mcp-opencode/docs/tools) for the
 headless instance tools.
 
-## 👀 Watching jobs: `/opencode-jobs`
+## 👀 Jobs pane (shelved)
 
-The plugin also ships a [mod](https://code.claude.com/docs/en/plugins/mods/overview)
-(Claude Code 2.1.287 or later). `/opencode-jobs` opens a 52-column pane listing
-every headless opencode instance the MCP has started, two lines per session:
-
-```
-opencode jobs     1 ready · 1 retrying · 1 running
-────────────────────────────────────────────────
-
-✓  fix flaky retry test                   1: open
-   api-gateway · ready · 1h                  copy
-
-⚠  tidy checkout copy                     2: open
-   acme-web · retrying · 30m                 copy
-
-◌  add rate limit header                  3: open
-   api-gateway · running · 10m               copy
-
-?  rewrite the intro
-   docs · gone · 2h
-
-1–3 open in iTerm · tab to copy · esc close
-```
-
-| Glyph | State      | Meaning                                                    |
-| ----- | ---------- | ---------------------------------------------------------- |
-| `✓`   | `ready`    | The session has finished: its result is waiting for you    |
-| `⚠`   | `retrying` | opencode is retrying a failed model request                |
-| `◌`   | `running`  | Still working                                              |
-| `◌`   | `starting` | The instance answers but has no session yet                |
-| `?`   | `gone`     | The instance no longer answers (shown dim, never an error) |
-
-Rows sort ready first, then retrying, running and gone, newest first within
-each. The header counts the states once there are two or more jobs. A long
-title is cut at the edge with an ellipsis. `ready` is drawn in your terminal's
-bright blue and `retrying` in its bright yellow, so the pane follows your
-terminal theme.
-
-Each live row has two actions, numbered `1`–`9` in on-screen order:
-
-- **open** (in iTerm2, in the terminal CLI) opens a new iTerm tab running
-  `opencode attach http://127.0.0.1:<port> --session <id>`. If iTerm cannot be
-  driven, the command is copied instead.
-- **copy** puts that attach command on your clipboard. Outside iTerm, copy is
-  the only action and takes the number.
-
-Gone and starting rows have no actions. With no instances running,
-`/opencode-jobs` shows a toast ("No headless opencode jobs") instead of opening
-an empty pane; a pane already open stays open and says so.
-
-How it works, and what it never does:
-
-- It reads the MCP's registry, `~/.local/state/mcp-opencode/instances.json`
-  (or `$MCP_OPENCODE_STATE_DIR/instances.json`), every 5 seconds, and re-reads
-  it only when the file changes.
-- While the registry lists instances it asks each one for
-  `GET /session/status` every 5 seconds, all in parallel with a one-second
-  timeout. An empty registry means no network requests at all.
-- It is read-only: it never hooks tool calls, never starts or stops an
-  instance and never writes to the registry. The only command it runs is
-  `osascript`, when you press **open**, and only after checking the session id
-  and port.
+The jobs pane is shelved for a revamp; the work lives on the [`draft/opencode-jobs-pane`](https://github.com/kud/claude-plugins/tree/draft/opencode-jobs-pane) branch.
 
 ## 📦 Install
 
