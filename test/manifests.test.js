@@ -63,3 +63,37 @@ test("every docs page listed in meta.json has an .mdx file", () => {
     )
   }
 })
+
+const parseFrontmatter = (source) => {
+  const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!match) return null
+  const fields = {}
+  for (const line of match[1].split(/\r?\n/)) {
+    const pair = line.match(/^([A-Za-z][\w-]*):\s*(.*)$/)
+    if (pair) fields[pair[1]] = pair[2].trim()
+  }
+  return fields
+}
+
+test("every plugin's agents directory (if present) holds valid agent files", () => {
+  for (const p of marketplace.plugins) {
+    const agentsDir = join(root, p.source, "agents")
+    if (!existsSync(agentsDir)) continue
+    const agents = readdirSync(agentsDir).filter((f) => f.endsWith(".md"))
+    assert.ok(agents.length > 0, `"${p.name}" has an empty agents/ directory`)
+    for (const file of agents) {
+      const label = `${p.name}/agents/${file}`
+      const fields = parseFrontmatter(
+        readFileSync(join(agentsDir, file), "utf8"),
+      )
+      assert.ok(fields, `${label} has no frontmatter`)
+      assert.ok(fields.name, `${label} is missing "name"`)
+      assert.ok(fields.description, `${label} is missing "description"`)
+      assert.equal(
+        fields.name,
+        file.replace(/\.md$/, ""),
+        `${label}: name must match the file name`,
+      )
+    }
+  }
+})
