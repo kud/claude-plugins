@@ -2,14 +2,18 @@ import { atom, read, update } from "claude-code"
 
 export const PANE = "opencode-jobs"
 export const COMMAND = "opencode-jobs"
-export const STORE_KEY = "opencode/jobs"
 export const POLL_MS = 5000
 export const FETCH_TIMEOUT_MS = 1000
-export const STORE_HEARTBEAT_MS = 30000
 export const EMPTY_LINE = "no headless opencode jobs"
 
-const STATE_ORDER = { busy: 0, retry: 1, idle: 2, gone: 3 }
-const GLYPHS = { idle: "✓", busy: "◌", retry: "⚠", gone: "·" }
+export const DISPLAY_STATE_ORDER = { idle: 0, retry: 1, busy: 2, gone: 3 }
+export const STATE_WORDS = {
+  idle: "ready",
+  retry: "retrying",
+  busy: "running",
+  gone: "gone",
+}
+export const GLYPHS = { idle: "✓", retry: "⚠", busy: "◌", gone: "" }
 const GONE = { isReachable: false }
 
 const jobs = atom(
@@ -79,27 +83,9 @@ export const rowsOf = (records, liveByPort) =>
     })
     .sort(
       (a, b) =>
-        STATE_ORDER[a.state] - STATE_ORDER[b.state] ||
+        DISPLAY_STATE_ORDER[a.state] - DISPLAY_STATE_ORDER[b.state] ||
         (Date.parse(b.startedAt) || 0) - (Date.parse(a.startedAt) || 0),
     )
-
-const jobOf = ({ port, sessionId, title, repo }) => ({
-  port,
-  sessionId,
-  title,
-  repo,
-})
-
-export const summaryOf = (rows, updatedAt) => {
-  const attachable = rows.filter((row) => row.sessionId)
-  return {
-    updatedAt,
-    ready: attachable.filter((row) => row.state === "idle").map(jobOf),
-    running: attachable
-      .filter((row) => row.state === "busy" || row.state === "retry")
-      .map(jobOf),
-  }
-}
 
 const withTimeout = async ($, promise, ms) => {
   const timedOut = $.clock.sleep(ms).then(() => GONE)
@@ -133,8 +119,6 @@ const probeAll = async ($, records) => {
 
 let registryStamp = null
 let records = []
-let lastPublished = null
-let lastPublishedAt = 0
 let isPolling = false
 
 const readRecords = async ($, path) => {
@@ -157,16 +141,6 @@ const readRecords = async ($, path) => {
   return records
 }
 
-const publish = async ($, rows, now) => {
-  const summary = summaryOf(rows, now)
-  const signature = JSON.stringify([summary.ready, summary.running])
-  const isStale = now - lastPublishedAt >= STORE_HEARTBEAT_MS
-  if (signature === lastPublished && (rows.length === 0 || !isStale)) return
-  await $.store.set(STORE_KEY, summary)
-  lastPublished = signature
-  lastPublishedAt = now
-}
-
 const poll = async ($, path) => {
   if (isPolling) return
   isPolling = true
@@ -176,59 +150,99 @@ const poll = async ($, path) => {
     const rows = rowsOf(current, liveByPort)
     const now = await $.clock.now()
     await update($, jobs, () => ({ rows, updatedAt: now }))
-    await publish($, rows, now)
   } finally {
     isPolling = false
   }
 }
 
-const rowView = ({ Box, Text, Button }, $, row, index, now) => {
+const countByState = (rows) => {
+  const counts = { idle: 0, retry: 0, busy: 0, gone: 0 }
+  for (const row of rows) counts[row.state]++
+  return counts
+}
+
+const headerView = ({ Box, Text }, rows) => {
+  const counts = countByState(rows)
+  const parts = []
+  if (counts.idle) parts.push(`${counts.idle} ready`)
+  if (counts.retry) parts.push(`${counts.retry} retrying`)
+  if (counts.busy) parts.push(`${counts.busy} running`)
+  return Box({
+    justifyContent: "space-between",
+    children: [
+      Text({ bold: true, children: ["opencode jobs"] }),
+      Text({ dimColor: true, children: [parts.join(" · ")] }),
+    ],
+  })
+}
+
+const rowView = ({ Box, Text, Button }, $, row, displayIndex, now) => {
   const isGone = row.state === "gone"
-  const hotkey = index < 9 ? String(index + 1) : undefined
-  const head = [
-    Text({
-      bold: row.state === "idle",
-      dimColor: row.state === "busy" || isGone,
-      children: [`${GLYPHS[row.state]} ${row.state.padEnd(5)}`],
-    }),
-    Text({
-      dimColor: isGone,
-      bold: row.state === "idle",
-      children: [row.repo],
-    }),
-    Text({
-      dimColor: true,
-      children: [`${ageOf(row.startedAt, now)} :${row.port}`],
-    }),
-  ]
-  if (row.sessionId && !isGone) {
-    const command = attachCommandOf(row.port, row.sessionId)
-    head.push(
-      Button({
-        key: `attach:${row.port}:${row.sessionId}`,
-        label: "copy",
-        plain: true,
-        ...(hotkey ? { hotkey } : {}),
-        onPress: async (press) => {
-          const copied = await $.ui.copy({
-            text: command,
-            surface: press.surface,
-          })
-          $.ui.toast(
-            copied.isCopied ? "copied" : `not copied: ${copied.reason}`,
-          )
-        },
+  const stateWord = STATE_WORDS[row.state]
+  const glyph = GLYPHS[row.state]
+  const leftLabel = glyph ? `${glyph} ${stateWord}` : stateWord
+  const paddedLeft = leftLabel.padEnd(9)
+  const hotkey = displayIndex < 9 ? String(displayIndex + 1) : undefined
+
+  const line1Left = Box({
+    columnGap: 1,
+    children: [
+      Text({
+        bold: row.state === "idle",
+        dimColor: row.state === "busy" || row.state === "gone",
+        ...(row.state === "retry" ? { color: "yellow" } : {}),
+        children: [paddedLeft],
       }),
-    )
-  }
+      Text({
+        dimColor: isGone,
+        bold: row.state === "idle",
+        children: [row.repo],
+      }),
+    ],
+  })
+
+  const line1Right = Text({
+    dimColor: true,
+    children: [`${ageOf(row.startedAt, now)} :${row.port}`],
+  })
+
+  const line2Left = Text({
+    dimColor: isGone,
+    wrap: "truncate-end",
+    children: [`  ${row.title}`],
+  })
+
+  const line2Right =
+    row.sessionId && !isGone
+      ? Button({
+          key: `attach:${row.port}:${row.sessionId}`,
+          label: "copy attach",
+          plain: true,
+          ...(hotkey ? { hotkey } : {}),
+          onPress: async (press) => {
+            const copied = await $.ui.copy({
+              text: attachCommandOf(row.port, row.sessionId),
+              surface: press.surface,
+            })
+            $.ui.toast(
+              copied.isCopied
+                ? `Copied attach for ${row.repo}`
+                : `not copied: ${copied.reason}`,
+            )
+          },
+        })
+      : null
+
   return Box({
     flexDirection: "column",
     children: [
-      Box({ flexDirection: "row", columnGap: 2, children: head }),
-      Text({
-        dimColor: isGone,
-        wrap: "truncate",
-        children: [`  ${row.title}`],
+      Box({
+        justifyContent: "space-between",
+        children: [line1Left, line1Right],
+      }),
+      Box({
+        justifyContent: "space-between",
+        children: [line2Left, line2Right].filter(Boolean),
       }),
     ],
   })
@@ -240,7 +254,7 @@ export const summaryText = (rows) =>
     : rows
         .map(
           (row) =>
-            `${GLYPHS[row.state]} ${row.state} ${row.repo} :${row.port} ${row.title}`,
+            `${GLYPHS[row.state] ? GLYPHS[row.state] + " " : ""}${STATE_WORDS[row.state]} ${row.repo} :${row.port} ${row.title}`,
         )
         .join("\n")
 
@@ -251,8 +265,8 @@ export const register = (on) => {
       description: "List headless opencode jobs and copy an attach command",
     })
     const path = registryPathOf(
-      await $.env.get('MCP_OPENCODE_STATE_DIR'),
-      await $.env.get('HOME'),
+      await $.env.get("MCP_OPENCODE_STATE_DIR"),
+      await $.env.get("HOME"),
     )
     $.clock.every(POLL_MS, () => {
       void poll($, path)
@@ -262,14 +276,20 @@ export const register = (on) => {
   })
 
   on("command.run", { command: COMMAND }, async ($) => {
+    const { rows } = await read($, jobs)
+    if (rows.length === 0) {
+      $.ui.toast("No headless opencode jobs")
+      return {}
+    }
     const opened = await $.ui.open({
       id: PANE,
       title: "opencode jobs",
       focus: true,
       closeOnEscape: true,
+      columns: 48,
+      rows: Math.min(3 + 3 * rows.length, 14),
     })
     if (opened.isPlaced) return {}
-    const { rows } = await read($, jobs)
     return { text: summaryText(rows) }
   })
 
@@ -278,14 +298,23 @@ export const register = (on) => {
     const { Box, Text } = elements
     const { rows, updatedAt } = await read($, jobs)
     if (rows.length === 0) {
-      return Text({ dimColor: true, children: [EMPTY_LINE] })
+      return Box({
+        flexDirection: "column",
+        children: [
+          headerView(elements, rows),
+          Text({ dimColor: true, children: ["nothing running"] }),
+        ],
+      })
     }
     return Box({
       flexDirection: "column",
       rowGap: 1,
-      children: rows.map((row, index) =>
-        rowView(elements, $, row, index, updatedAt),
-      ),
+      children: [
+        headerView(elements, rows),
+        ...rows.map((row, index) =>
+          rowView(elements, $, row, index, updatedAt),
+        ),
+      ],
     })
   })
 }
