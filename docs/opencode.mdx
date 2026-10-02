@@ -48,6 +48,48 @@ worktree. See the MCP's
 [tools reference](https://kud.io/projects/mcp-opencode/docs/tools) for the
 headless instance tools.
 
+## 👀 Watching jobs: `/opencode-jobs`
+
+The plugin also ships a [mod](https://code.claude.com/docs/en/plugins/mods/overview)
+(Claude Code 2.1.287 or later). `/opencode-jobs` opens a pane listing every
+headless opencode instance the MCP has started, one row per session:
+
+```
+◌ busy   api-gateway  10m :53817  1: copy
+  add rate limit header
+
+✓ idle   api-gateway  1h :53817  2: copy
+  fix flaky retry test
+
+· gone   docs  2h :54000
+  rewrite the intro
+```
+
+| Glyph | State   | Meaning                                                    |
+| ----- | ------- | ---------------------------------------------------------- |
+| `✓`   | `idle`  | The session has finished: its result is ready              |
+| `◌`   | `busy`  | Still working                                              |
+| `⚠`   | `retry` | opencode is retrying a failed model request                |
+| `·`   | `gone`  | The instance no longer answers (shown dim, never an error) |
+
+Rows sort busiest first, then newest. Each live row has a **copy** button
+(hotkeys `1`–`9`) that puts `opencode attach http://127.0.0.1:<port> --session <id>`
+on your clipboard, so you can watch or take over the job in a terminal of your
+own. With no instances running the pane shows a single dim line.
+
+How it works, and what it never does:
+
+- It reads the MCP's registry, `~/.local/state/mcp-opencode/instances.json`
+  (or `$MCP_OPENCODE_STATE_DIR/instances.json`), every 5 seconds, and re-reads
+  it only when the file changes.
+- While the registry lists instances it asks each one for
+  `GET /session/status` every 5 seconds, all in parallel with a one-second
+  timeout. An empty registry means no network requests at all.
+- It publishes a summary to the plugin's own store under `opencode/jobs`
+  (`{ updatedAt, ready, running }`), for other mods to build on.
+- It is read-only: it never hooks tool calls, never starts or stops an
+  instance and never writes to the registry.
+
 ## 📦 Install
 
 ```
