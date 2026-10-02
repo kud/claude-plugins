@@ -13,7 +13,7 @@ export const STATE_WORDS = {
   busy: "running",
   gone: "gone",
 }
-export const GLYPHS = { idle: "✓", retry: "⚠", busy: "◌", gone: "" }
+export const GLYPHS = { idle: "✓", retry: "⚠", busy: "◌", gone: " " }
 const GONE = { isReachable: false }
 
 const jobs = atom(
@@ -168,10 +168,19 @@ const headerView = ({ Box, Text }, rows) => {
   if (counts.retry) parts.push(`${counts.retry} retrying`)
   if (counts.busy) parts.push(`${counts.busy} running`)
   return Box({
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    paddingRight: 2,
+    children: [Text({ children: [parts.join(" · ")] })],
+  })
+}
+
+const stateLabelOf = (Box, Text, state, glyph, paddedLeft, stateProps) => {
+  if (state !== "busy") return Text({ ...stateProps, children: [paddedLeft] })
+  return Box({
+    flexShrink: 0,
     children: [
-      Text({ bold: true, children: ["opencode jobs"] }),
-      Text({ dimColor: true, children: [parts.join(" · ")] }),
+      Text({ ...stateProps, children: [glyph] }),
+      Text({ children: [paddedLeft.slice(glyph.length)] }),
     ],
   })
 }
@@ -184,26 +193,41 @@ const rowView = ({ Box, Text, Button }, $, row, displayIndex, now) => {
   const paddedLeft = leftLabel.padEnd(9)
   const hotkey = displayIndex < 9 ? String(displayIndex + 1) : undefined
 
+  const stateProps = (() => {
+    switch (row.state) {
+      case "idle":
+        return { bold: true, color: "success" }
+      case "retry":
+        return { color: "warning" }
+      case "busy":
+        return { color: "suggestion" }
+      case "gone":
+        return { dimColor: true }
+      default:
+        return {}
+    }
+  })()
+
   const line1Left = Box({
+    flexShrink: 1,
+    minWidth: 0,
     columnGap: 1,
     children: [
+      stateLabelOf(Box, Text, row.state, glyph, paddedLeft, stateProps),
       Text({
-        bold: row.state === "idle",
-        dimColor: row.state === "busy" || row.state === "gone",
-        ...(row.state === "retry" ? { color: "yellow" } : {}),
-        children: [paddedLeft],
-      }),
-      Text({
-        dimColor: isGone,
-        bold: row.state === "idle",
+        wrap: "truncate-end",
+        ...(isGone ? { dimColor: true } : {}),
         children: [row.repo],
       }),
     ],
   })
 
-  const line1Right = Text({
-    dimColor: true,
-    children: [`${ageOf(row.startedAt, now)} :${row.port}`],
+  const line1Right = Box({
+    flexShrink: 0,
+    paddingLeft: 1,
+    children: [
+      Text({ dimColor: true, children: [`${ageOf(row.startedAt, now)} :${row.port}`] }),
+    ],
   })
 
   const line2Left = Text({

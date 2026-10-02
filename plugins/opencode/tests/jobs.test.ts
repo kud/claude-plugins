@@ -135,7 +135,7 @@ function lineAt(columns: number, spaceBetween: any): string {
 function world(
   on: On,
   registry: unknown[] | null,
-  { isHanging = false }: { isHanging?: boolean } = {},
+  { isHanging = false, live: customLive = {} }: { isHanging?: boolean; live?: Record<string, any> } = {},
 ) {
   const clock = mock.clock(on, { now: NOW })
   mock.env(on, { HOME })
@@ -163,7 +163,7 @@ function world(
     fetched.push(e.url)
     if (isHanging) await new Promise<void>((resolve) => releases.push(resolve))
     const port = Number(new URL(e.url).port)
-    const text = STATUSES[port]
+    const text = customLive[port] ? JSON.stringify(customLive[port].statuses) : STATUSES[port]
     if (text === undefined) return { deny: "ECONNREFUSED" }
     return { value: { status: 200, ok: true, headers: {}, text } }
   })
@@ -258,7 +258,7 @@ describe("jobs", () => {
     await w.clock.advance(15000)
 
     const drawn = textOf(await $.ui.render(PANE))
-    expect(drawn).toContain("opencode jobs")
+    expect(drawn).not.toContain("opencode jobs")
     expect(drawn).toContain("nothing running")
     expect(w.fetched).toEqual([])
   })
@@ -313,16 +313,16 @@ describe("jobs", () => {
     const drawn = textOf(await $.ui.render(PANE))
     expect(drawn).toContain("✓ ready")
     expect(drawn).toContain("⚠ retrying")
-    expect(drawn).toContain("◌ running")
+    expect(drawn).toContain("◌\n running")
     expect(drawn).toContain("gone")
     expect(drawn).toContain("add rate limit header")
-    expect(drawn.indexOf("✓ ready")).toBeLessThan(drawn.indexOf("◌ running"))
+    expect(drawn.indexOf("✓ ready")).toBeLessThan(drawn.indexOf("◌\n running"))
     expect(w.fetched).toContain(
       "http://127.0.0.1:53817/session/status?directory=%2Fwork%2Facme%2Fapi-gateway",
     )
   })
 
-  test("header shows counts omitting zero parts", async ($, on) => {
+  test("header shows counts omitting zero parts, left-aligned, no title", async ($, on) => {
     const w = world(on, INSTANCES)
     await $.session.start(START)
     await w.clock.advance(1000)
@@ -331,6 +331,7 @@ describe("jobs", () => {
     const drawn = textOf(await $.ui.render(PANE))
     expect(drawn).toContain("1 ready · 1 retrying · 1 running")
     expect(drawn).not.toContain("2 running")
+    expect(drawn).not.toContain("opencode jobs")
   })
 
   test("button hotkeys 1..n follow on-screen order and render copy attach labels", async ($, on) => {
@@ -409,7 +410,7 @@ describe("jobs", () => {
     await w.clock.settle()
 
     const drawn = textOf(await $.ui.render(PANE))
-    expect(drawn).not.toContain("◌ running")
+    expect(drawn).not.toContain("◌\n running")
     expect(drawn).toContain("gone")
     expect(drawn).not.toMatch(/\d+ (ready|retrying|running)/)
     w.releases.forEach((release) => release())
@@ -427,7 +428,7 @@ describe("jobs", () => {
     expect(w.fetched.length).toBeGreaterThan(3)
   })
 
-  test("a ready row lays out as two exact 48-column lines", async ($, on) => {
+  test("a ready row lays out as two exact 48-column lines with space before age", async ($, on) => {
     const w = world(on, INSTANCES)
     await $.session.start(START)
     await w.clock.settle()
@@ -441,5 +442,59 @@ describe("jobs", () => {
     expect(lineAt(48, line2)).toBe(
       "  fix flaky retry test             [copy attach]",
     )
+  })
+
+  test("rowView uses theme keys: idle=success+bold, retry=warning, busy=suggestion, gone=dimColor", async ($, on) => {
+    const w = world(on, INSTANCES)
+    await $.session.start(START)
+    await w.clock.advance(1000)
+    await w.clock.settle()
+
+    const rendered = await $.ui.render(PANE)
+    const json = JSON.stringify(rendered)
+
+    // idle row (ready) has color:success and bold
+    expect(json).toContain('"color":"success"')
+    expect(json).toContain('"bold":true')
+
+    // retry row has color:warning (not yellow)
+    expect(json).toContain('"color":"warning"')
+    expect(json).not.toContain('"color":"yellow"')
+
+    // busy row: only the glyph carries color:suggestion, the word is uncoloured
+    expect(json).toContain('{"type":"Text","props":{"color":"suggestion"},"children":["◌"]}')
+    expect(json).toContain('{"type":"Text","children":[" running"]}')
+
+    // gone row has dimColor on the whole row (both line1 and line2 Text elements)
+    expect(json).toContain('"dimColor":true')
+  })
+
+  test("long repo name truncates with space before age", async ($, on) => {
+    const longRepoInstances = [
+      {
+        runtime: "opencode",
+        port: 55555,
+        pid: 9999,
+        mcpPid: 9998,
+        directory: "/work/acme/very-long-repository-name-that-exceeds-48-columns",
+        startedAt: "2026-10-02T11:55:00.000Z",
+        sessions: [{ id: "ses_long", title: "long repo test", model: "m", startedAt: "2026-10-02T11:55:00.000Z" }],
+      },
+    ]
+    const live = { 55555: { isReachable: true, statuses: { ses_long: { type: "idle" } } } }
+    const w = world(on, longRepoInstances, { live })
+    await $.session.start(START)
+    await w.clock.advance(1000)
+    await w.clock.settle()
+
+    const rendered = await $.ui.render(PANE_48)
+    const json = JSON.stringify(rendered)
+
+    // line1Right contains age and port with space before age
+    expect(json).toContain("5m :55555")
+    // repo Text has wrap: truncate-end
+    expect(json).toContain('"wrap":"truncate-end"')
+    // line1 structure has left and right boxes
+    expect(json).toContain('"type":"Box"')
   })
 })
