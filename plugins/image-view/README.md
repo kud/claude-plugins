@@ -32,6 +32,8 @@ or in the `env` block of Claude Code's settings (`~/.claude/settings.json`):
 
 Without it, iTerm2 gets the `Raster` thumbnails. kitty and Ghostty need nothing.
 
+Claude Code reads the override once, as it starts. Added to settings mid-session, it takes effect after a restart; until then the mod keeps drawing `Raster` thumbnails.
+
 ### The `Raster` fallback
 
 For the `Raster` path the pasted PNG is scaled with macOS `sips` to exactly the tile's pixel size (columns × rows × 2), written as an uncompressed BMP beside Claude Code's own copy of the paste, read back, turned into cells, and the temporary file removed. Nothing leaves the machine. Decoded tiles are cached per image and size, so resizing the terminal decodes once per new size.
