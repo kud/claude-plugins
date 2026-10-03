@@ -2,21 +2,24 @@ import type { On, RenderInput } from "claude-code"
 import { describe, expect, mock, test } from "claude-code/testing"
 
 import {
-  attachCommandOf,
   ageOf,
-  footerOf,
-  headerCountsOf,
-  inlineRowsOf,
+  attachCommandOf,
   openScriptOf,
   parseRegistry,
   registryPathOf,
   rowsOf,
-  summaryText,
 } from "../hooks/mods/jobs.mjs"
 
 const HOME = "/home/acme"
 const REGISTRY = `${HOME}/.local/state/mcp-opencode/instances.json`
 const NOW = Date.parse("2026-10-02T12:00:00.000Z")
+
+const session = (id: string, title: string, startedAt: string) => ({
+  id,
+  title,
+  model: "m",
+  startedAt: `2026-10-02T${startedAt}:00.000Z`,
+})
 
 const INSTANCES = [
   {
@@ -27,18 +30,8 @@ const INSTANCES = [
     directory: "/work/acme/api-gateway",
     startedAt: "2026-10-02T11:00:00.000Z",
     sessions: [
-      {
-        id: "ses_old",
-        title: "fix flaky retry test",
-        model: "m",
-        startedAt: "2026-10-02T11:00:00.000Z",
-      },
-      {
-        id: "ses_new",
-        title: "add rate limit header",
-        model: "m",
-        startedAt: "2026-10-02T11:50:00.000Z",
-      },
+      session("ses_old", "fix flaky retry test", "11:00"),
+      session("ses_new", "add rate limit header", "11:50"),
     ],
   },
   {
@@ -47,14 +40,11 @@ const INSTANCES = [
     pid: 4201,
     mcpPid: 4200,
     directory: "/work/acme/acme-web/",
-    startedAt: "2026-10-02T11:30:00.000Z",
+    startedAt: "2026-10-02T11:00:00.000Z",
     sessions: [
-      {
-        id: "ses_web",
-        title: "tidy checkout copy",
-        model: "m",
-        startedAt: "2026-10-02T11:30:00.000Z",
-      },
+      session("ses_web", "tidy checkout copy", "11:30"),
+      session("ses_nav", "fix nav focus ring", "11:20"),
+      session("ses_img", "lazy-load hero image", "11:10"),
     ],
   },
   {
@@ -64,14 +54,7 @@ const INSTANCES = [
     mcpPid: 4300,
     directory: "/work/acme/docs",
     startedAt: "2026-10-02T10:00:00.000Z",
-    sessions: [
-      {
-        id: "ses_dead",
-        title: "rewrite the intro",
-        model: "m",
-        startedAt: "2026-10-02T10:00:00.000Z",
-      },
-    ],
+    sessions: [session("ses_dead", "rewrite the intro", "10:00")],
   },
 ]
 
@@ -80,55 +63,66 @@ const STARTING_INSTANCE = {
   port: 54100,
   pid: 4401,
   mcpPid: 4400,
-  directory: "/work/acme/api-gateway",
+  directory: "/work/acme/docs",
   startedAt: "2026-10-02T11:59:00.000Z",
   sessions: [],
 }
 
-const STATUSES: Record<number, string> = {
-  53817: JSON.stringify({ ses_new: { type: "busy" } }),
-  53900: JSON.stringify({
-    ses_web: { type: "retry", attempt: 2, message: "rate limited", next: 0 },
-  }),
-  54100: JSON.stringify({}),
-}
+type Statuses = Record<number, Record<string, { type: string }>>
 
-const PANE: RenderInput<"Pane"> = {
-  component: "Pane",
-  surface: "terminal",
-  requestId: "opencode-jobs",
-  viewport: { columns: 160, rows: 40 },
-  props: {
-    title: "opencode jobs",
-    isFocused: true,
-    bodyColumns: 52,
-    placement: "dock",
-    scroll: { offset: 0, bodyRows: 30 },
-    view: {},
+const STATUSES: Statuses = {
+  53817: { ses_new: { type: "busy" } },
+  53900: {
+    ses_web: { type: "retry" },
+    ses_nav: { type: "busy" },
+    ses_img: { type: "busy" },
   },
+  54100: {},
 }
 
-const DESKTOP_PANE = {
-  ...PANE,
-  surface: "desktop",
-} as unknown as RenderInput<"Pane">
+const bandOf = (
+  props: Partial<RenderInput<"AbovePrompt">["props"]> = {},
+  surface: "terminal" | "desktop" = "terminal",
+) =>
+  ({
+    component: "AbovePrompt",
+    surface,
+    requestId: "band",
+    viewport: { columns: 48, rows: 40 },
+    props: {
+      hasSurvey: false,
+      isWorking: false,
+      maxRows: 8,
+      bodyColumns: 48,
+      scroll: { offset: 0, bodyRows: 8 },
+      view: {},
+      ...props,
+    },
+  }) as RenderInput<"AbovePrompt">
 
 type Node = { type?: string; props?: Record<string, any>; children?: unknown[] }
+
+// An empty Box takes no rows: it is what the engine draws beneath a band with
+// nothing of its own.
+const isEmptyBox = (tree: unknown) => {
+  const node = tree as Node
+  const children = node?.children ?? node?.props?.children ?? []
+  return node?.type === "Box" && (children as unknown[]).length === 0
+}
 
 function textOf(tree: unknown): string {
   if (typeof tree === "string" || typeof tree === "number") return String(tree)
   if (Array.isArray(tree)) return tree.map(textOf).join("")
   if (typeof tree !== "object" || !tree) return ""
   const node = tree as Node
-  const label =
-    typeof node.props?.label === "string"
-      ? `[${node.props.hotkey ? `${node.props.hotkey}: ` : ""}${node.props.label}]`
-      : ""
+  if (node.type === "Button") {
+    const { label, hotkey, plain } = node.props ?? {}
+    if (plain) return hotkey ? `${hotkey}: ${label}` : label
+    return `[ ${label} ]`
+  }
   const children = (node.children ?? node.props?.children ?? []) as unknown[]
-  if (label) return label
-  if (node.type === "Text") return textOf(children)
-  const separator = node.props?.flexDirection === "column" ? "\n" : ""
-  return children.map(textOf).join(separator)
+  if (node.props?.flexDirection !== "column") return children.map(textOf).join("")
+  return children.filter((child) => !isEmptyBox(child)).map(textOf).join("\n")
 }
 
 function findAll(tree: unknown, match: (node: Node) => boolean): Node[] {
@@ -142,39 +136,43 @@ function findAll(tree: unknown, match: (node: Node) => boolean): Node[] {
   ]
 }
 
-const buttonsOf = (tree: unknown) =>
-  findAll(tree, (node) => node.type === "Button").map(
-    (node) => node.props ?? {},
-  )
+const linesOf = (tree: unknown) => textOf(tree).split("\n")
 
 function world(
   on: On,
   registry: unknown[] | null,
   {
-    isHanging = false,
     termProgram = "iTerm.app",
     osascriptExit = 0,
-  }: { isHanging?: boolean; termProgram?: string; osascriptExit?: number } = {},
+    statuses = STATUSES,
+    below = null,
+  }: {
+    termProgram?: string
+    osascriptExit?: number
+    statuses?: Statuses
+    below?: string | null
+  } = {},
 ) {
   const clock = mock.clock(on, { now: NOW })
   mock.env(on, { HOME, TERM_PROGRAM: termProgram })
+  const live = { statuses: structuredClone(statuses) as Statuses }
   const fetched: string[] = []
-  const releases: (() => void)[] = []
-  const counts = { reads: 0 }
+  const counts = { reads: 0, mtime: 1 }
   const toasts: string[] = []
   const copied: string[] = []
   const ran: (readonly string[])[] = []
-  const commands: { name: string; description: string }[] = []
-  const opens: Array<{ id: string; columns?: number; rows?: number }> = []
 
   on("session.start", ($, e) => ({ cwd: e.cwd }))
-  on("command.register", ($, e) => {
-    commands.push({ name: e.name, description: e.description ?? "" })
-    return { value: { command: e.name } }
-  })
   on("fs.stat", ($, e) =>
     registry && e.path === REGISTRY
-      ? { value: { kind: "file", size: 100, mtimeMs: 1, isLink: false } }
+      ? {
+          value: {
+            kind: "file",
+            size: 100,
+            mtimeMs: counts.mtime,
+            isLink: false,
+          },
+        }
       : { deny: "ENOENT" },
   )
   on("fs.read", ($, e) => {
@@ -183,12 +181,18 @@ function world(
       ? { value: JSON.stringify(registry) }
       : { deny: "ENOENT" }
   })
-  on("http.fetch", async ($, e) => {
+  on("http.fetch", ($, e) => {
     fetched.push(e.url)
-    if (isHanging) await new Promise<void>((resolve) => releases.push(resolve))
-    const text = STATUSES[Number(new URL(e.url).port)]
-    if (text === undefined) return { deny: "ECONNREFUSED" }
-    return { value: { status: 200, ok: true, headers: {}, text } }
+    const statuses = live.statuses[Number(new URL(e.url).port)]
+    if (statuses === undefined) return { deny: "ECONNREFUSED" }
+    return {
+      value: {
+        status: 200,
+        ok: true,
+        headers: {},
+        text: JSON.stringify(statuses),
+      },
+    }
   })
   on("process.run", ($, e) => {
     ran.push(e.argv)
@@ -202,10 +206,12 @@ function world(
       },
     }
   })
-  on("ui.open", ($, e) => {
-    opens.push({ id: e.id, columns: e.columns, rows: e.rows })
-    return { value: { isPlaced: true } }
+  on("ui.render", { component: "AbovePrompt" }, ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    if (below === null) return Box({})
+    return Text({ children: [below] })
   })
+  on("ui.focus", () => ({}))
   on("ui.copy", ($, e) => {
     copied.push(e.text)
     return { value: { isCopied: true } }
@@ -214,18 +220,9 @@ function world(
     toasts.push(e.text)
     return { value: undefined }
   })
+  on("prompt.edit", ($, e) => ({ text: e.text, cursor: e.cursor }))
 
-  return {
-    clock,
-    fetched,
-    toasts,
-    copied,
-    releases,
-    counts,
-    opens,
-    ran,
-    commands,
-  }
+  return { clock, live, fetched, toasts, copied, ran, counts }
 }
 
 const START = {
@@ -234,19 +231,36 @@ const START = {
   cwd: "/work",
 } as const
 
-const RUN = {
-  command: "opencode-jobs",
-  args: "",
-  origin: { kind: "composer" },
-  presentation: { isFullscreen: true, columns: 160 },
-} as const
-
-const LIVE = {
-  53817: { isReachable: true, statuses: { ses_new: { type: "busy" } } },
-  53900: { isReachable: true, statuses: { ses_web: { type: "retry" } } },
+const started = async ($: any, w: ReturnType<typeof world>) => {
+  await $.session.start(START)
+  await w.clock.advance(1000)
+  await w.clock.settle()
 }
 
-describe("jobs", () => {
+const tick = async (w: ReturnType<typeof world>) => {
+  await w.clock.advance(5000)
+  await w.clock.settle()
+}
+
+const focusRow = ($: any, element: string) =>
+  $.ui.focus({
+    component: "AbovePrompt",
+    requestId: "band",
+    plugin: "opencode",
+    element,
+    origin: { kind: "person" },
+  })
+
+const EDIT = {
+  origin: { kind: "composer" },
+  text: "",
+  cursor: 0,
+  start: 0,
+  end: 0,
+  inputText: "h",
+} as const
+
+describe("jobs band", () => {
   test("the registry path honours MCP_OPENCODE_STATE_DIR", async () => {
     expect(registryPathOf(undefined, HOME)).toBe(REGISTRY)
     expect(registryPathOf("/tmp/oc-state", HOME)).toBe(
@@ -263,302 +277,200 @@ describe("jobs", () => {
     ).toHaveLength(1)
   })
 
-  test("the attach command names the port and the session", async () => {
+  test("the iTerm script carries the attach command and refuses unsafe input", async () => {
     expect(attachCommandOf(53817, "ses_new")).toBe(
       "opencode attach http://127.0.0.1:53817 --session ses_new",
     )
-  })
-
-  test("the iTerm script carries the attach command and refuses unsafe input", async () => {
     const script = openScriptOf(53817, "ses_new")
     expect(script).toContain('tell application "iTerm2"')
-    expect(script).toContain(
-      "if (count of windows) = 0 then create window with default profile",
-    )
-    expect(script).toContain("create tab with default profile")
     expect(script).toContain(
       'tell current session to write text "opencode attach http://127.0.0.1:53817 --session ses_new"',
     )
     expect(openScriptOf(53817, 'ses"; do shell script "rm')).toBeNull()
     expect(openScriptOf(53817, "ses-new")).toBeNull()
     expect(openScriptOf(53817, null)).toBeNull()
-    expect(openScriptOf("53817", "ses_new")).toBeNull()
     expect(openScriptOf(538.17, "ses_new")).toBeNull()
   })
 
-  test("rows sort ready, retrying, running, gone, newest first within a state", async () => {
-    const rows = rowsOf(parseRegistry(JSON.stringify(INSTANCES)), LIVE)
+  test("rows sort ready, retrying, running, newest first, and gone jobs are dropped", async () => {
+    const live = Object.fromEntries(
+      Object.entries(STATUSES).map(([port, statuses]) => [
+        port,
+        { isReachable: true, statuses },
+      ]),
+    )
+    const rows = rowsOf(parseRegistry(JSON.stringify(INSTANCES)), live)
     expect(
-      rows.map((row: { sessionId: string; state: string; repo: string }) => [
+      rows.map((row: { sessionId: string; state: string }) => [
         row.sessionId,
         row.state,
-        row.repo,
       ]),
     ).toEqual([
-      ["ses_old", "idle", "api-gateway"],
-      ["ses_web", "retry", "acme-web"],
-      ["ses_new", "busy", "api-gateway"],
-      ["ses_dead", "gone", "docs"],
+      ["ses_old", "idle"],
+      ["ses_web", "retry"],
+      ["ses_new", "busy"],
+      ["ses_nav", "busy"],
+      ["ses_img", "busy"],
     ])
     expect(ageOf("2026-10-02T11:50:00.000Z", NOW)).toBe("10m")
-    expect(ageOf("2026-10-02T10:00:00.000Z", NOW)).toBe("2h")
   })
 
-  test("an instance with no session yet is starting while it answers, gone otherwise", async () => {
-    const [starting] = rowsOf([STARTING_INSTANCE], {
-      54100: { isReachable: true, statuses: {} },
-    })
-    expect(starting.state).toBe("busy")
-    expect(starting.sessionId).toBeNull()
-    expect(summaryText([starting])).toContain("◌ starting")
-    const [gone] = rowsOf([STARTING_INSTANCE], {})
-    expect(gone.state).toBe("gone")
+  test("idle: three rows, glyph and colour by state, overflow line, never a port", async ($, on) => {
+    const w = world(on, INSTANCES)
+    await started($, w)
+
+    const tree = await $.ui.render(bandOf())
+    expect(linesOf(tree)).toEqual([
+      "✓  fix flaky retry test · api-gateway         1h",
+      "⚠  tidy checkout copy · acme-web             30m",
+      "◌  add rate limit header · api-gateway       10m",
+      "   +2 more · ctrl+x tab",
+    ])
+    const colourOf = (glyph: string) =>
+      findAll(
+        tree,
+        (node) => node.type === "Text" && textOf(node) === glyph,
+      ).map((node) => node.props ?? {})
+    expect(colourOf("✓")).toEqual([{ color: "ansi256(12)" }])
+    expect(colourOf("⚠")).toEqual([{ color: "ansi256(11)" }])
+    expect(colourOf("◌")).toEqual([{}])
+    const shown = textOf(tree)
+    expect(shown).not.toMatch(/53817|53900|54000/)
+    expect(shown).not.toMatch(/ready|retrying|running/)
+    expect(shown).not.toContain("rewrite the intro")
   })
 
-  test("summaryText uses the state words and never the port", async () => {
-    const text = summaryText(
-      rowsOf(parseRegistry(JSON.stringify(INSTANCES)), LIVE),
-    )
-    expect(text).toContain("✓ ready")
-    expect(text).toContain("⚠ retrying")
-    expect(text).toContain("◌ running")
-    expect(text).toContain("? gone")
-    expect(text).not.toContain("53817")
+  test("overflow counts toward maxRows", async ($, on) => {
+    const w = world(on, INSTANCES)
+    await started($, w)
+
+    const at = async (maxRows: number) =>
+      linesOf(await $.ui.render(bandOf({ maxRows })))
+    expect(await at(8)).toHaveLength(4)
+    expect(await at(4)).toHaveLength(4)
+    expect(await at(3)).toEqual([
+      "✓  fix flaky retry test · api-gateway         1h",
+      "⚠  tidy checkout copy · acme-web             30m",
+      "   +3 more · ctrl+x tab",
+    ])
+    expect(await at(2)).toEqual([
+      "✓  fix flaky retry test · api-gateway         1h",
+      "   +4 more · ctrl+x tab",
+    ])
+    expect(await at(1)).toEqual(["   +5 more · ctrl+x tab"])
   })
 
-  test("header counts drop from the end when the width is short", async () => {
-    const rows = rowsOf(parseRegistry(JSON.stringify(INSTANCES)), LIVE)
-    expect(headerCountsOf(rows, 40)).toBe("1 ready · 1 retrying · 1 running")
-    expect(headerCountsOf(rows, 25)).toBe("1 ready · 1 retrying")
-    expect(headerCountsOf(rows, 8)).toBe("1 ready")
-    expect(headerCountsOf(rows, 3)).toBe("")
-    expect(headerCountsOf(rows.slice(0, 1), 40)).toBe("")
+  test("three jobs fit without an overflow line", async ($, on) => {
+    const w = world(on, [INSTANCES[0], INSTANCES[2]])
+    await started($, w)
+
+    expect(linesOf(await $.ui.render(bandOf()))).toHaveLength(2)
   })
 
-  test("the footer names the digit range for the surface", async () => {
-    expect(footerOf(3, true)).toBe(
-      "1–3 open in iTerm · tab to copy · esc close",
-    )
-    expect(footerOf(1, true)).toBe("1 open in iTerm · tab to copy · esc close")
-    expect(footerOf(3, false)).toBe("1–3 copy attach · esc close")
-    expect(footerOf(12, false)).toBe("1–9 copy attach · esc close")
-    expect(footerOf(0, true)).toBe("esc close")
-  })
+  test("a starting job reads starting…", async ($, on) => {
+    const w = world(on, [STARTING_INSTANCE])
+    await started($, w)
 
-  test("the inline height grows with the jobs up to 18 rows", async () => {
-    expect(inlineRowsOf(1)).toBe(9)
-    expect(inlineRowsOf(4)).toBe(18)
-    expect(inlineRowsOf(9)).toBe(18)
-  })
-
-  test("the command describes opening in iTerm only where it can", async ($, on) => {
-    const w = world(on, [])
-    await $.session.start(START)
-    await w.clock.settle()
-    expect(w.commands[0]).toEqual({
-      name: "opencode-jobs",
-      description:
-        "Headless opencode jobs: open one in a new iTerm tab, or copy its attach command",
-    })
-  })
-
-  test("outside iTerm the command offers copy alone", async ($, on) => {
-    const w = world(on, [], { termProgram: "Apple_Terminal" })
-    await $.session.start(START)
-    await w.clock.settle()
-    expect(w.commands[0]?.description).toBe(
-      "Headless opencode jobs: copy an attach command",
+    expect(linesOf(await $.ui.render(bandOf()))[0]).toMatch(
+      /^◌  starting… · docs +1m$/,
     )
   })
 
-  test("an empty pane says so in two dim lines and offers esc close", async ($, on) => {
-    const w = world(on, [])
-    await $.session.start(START)
-    await w.clock.settle()
-    await w.clock.advance(15000)
+  test("narrow: the repo goes first, then the title is cut", async ($, on) => {
+    const w = world(on, [INSTANCES[0]], { statuses: { 53817: {} } })
+    await started($, w)
 
-    const tree = await $.ui.render(PANE)
-    const drawn = textOf(tree)
-    expect(drawn).toContain("No headless jobs")
-    expect(drawn).toContain("Jobs started through mcp-opencode appear here.")
-    expect(drawn).toContain("esc close")
-    const dimLines = findAll(
-      tree,
-      (node) => node.type === "Text" && node.props?.dimColor === true,
-    ).map(textOf)
-    expect(dimLines).toContain("No headless jobs")
+    const at = async (bodyColumns: number) =>
+      linesOf(await $.ui.render(bandOf({ bodyColumns })))[0]
+    expect(await at(42)).toBe("✓  add rate limit header · api-gateway 10m")
+    expect(await at(40)).toBe("✓  add rate limit header             10m")
+    expect(await at(20)).toBe("✓  add rate lim… 10m")
+  })
+
+  test("no jobs: the band passes through", async ($, on) => {
+    const w = world(on, [], { below: "another band" })
+    await started($, w)
+
+    expect(textOf(await $.ui.render(bandOf()))).toBe("another band")
     expect(w.fetched).toEqual([])
   })
 
-  test("a missing registry is the empty state too", async ($, on) => {
-    const w = world(on, null)
-    await $.session.start(START)
-    await w.clock.settle()
+  test("a missing registry passes through too", async ($, on) => {
+    const w = world(on, null, { below: "another band" })
+    await started($, w)
 
-    expect(textOf(await $.ui.render(PANE))).toContain("No headless jobs")
-    expect(w.fetched).toEqual([])
+    expect(textOf(await $.ui.render(bandOf()))).toBe("another band")
   })
 
-  test("command.run with no jobs toasts and never opens the pane", async ($, on) => {
-    const w = world(on, [])
-    await $.session.start(START)
-    await w.clock.settle()
+  test("chaining: the next mod's lines stay below the jobs", async ($, on) => {
+    const w = world(on, INSTANCES, { below: "another band" })
+    await started($, w)
 
-    await $.command.run(RUN)
-
-    expect(w.toasts).toContain("No headless opencode jobs")
-    expect(w.opens).toHaveLength(0)
+    const lines = linesOf(await $.ui.render(bandOf()))
+    expect(lines).toHaveLength(5)
+    expect(lines[0]).toStartWith("✓  fix flaky retry test")
+    expect(lines[4]).toBe("another band")
   })
 
-  test("command.run asks for 52 docked columns and min(6 + 3n, 18) inline rows", async ($, on) => {
+  test("a survey holds the band", async ($, on) => {
     const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
+    await started($, w)
 
-    await $.command.run(RUN)
-
-    expect(w.opens).toHaveLength(1)
-    expect(w.opens[0]?.columns).toBe(52)
-    expect(w.opens[0]?.rows).toBe(18)
-  })
-
-  test("the pane lists every job in display order and never shows a port", async ($, on) => {
-    const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    const drawn = textOf(await $.ui.render(PANE))
-    expect(drawn).toContain("opencode jobs")
-    expect(drawn).toContain("✓")
-    expect(drawn).toContain("api-gateway · ready · 1h")
-    expect(drawn).toContain("acme-web · retrying · 30m")
-    expect(drawn).toContain("api-gateway · running · 10m")
-    expect(drawn).toContain("docs · gone · 2h")
-    expect(drawn.indexOf("fix flaky retry test")).toBeLessThan(
-      drawn.indexOf("tidy checkout copy"),
-    )
-    expect(drawn.indexOf("tidy checkout copy")).toBeLessThan(
-      drawn.indexOf("add rate limit header"),
-    )
-    expect(drawn.indexOf("add rate limit header")).toBeLessThan(
-      drawn.indexOf("rewrite the intro"),
-    )
-    expect(drawn).not.toMatch(/5381[0-9]|53900|54000/)
-    expect(w.fetched).toContain(
-      "http://127.0.0.1:53817/session/status?directory=%2Fwork%2Facme%2Fapi-gateway",
-    )
-  })
-
-  test("the header counts sit right of the bold title, dim, with a rule below", async ($, on) => {
-    const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    const tree = await $.ui.render(PANE)
-    const header = findAll(tree, (node) => node.props?.marginBottom === 1)[0]!
-    const [titleRow, rule] = header.children as [Node, Node]
-    expect(titleRow.props?.justifyContent).toBe("space-between")
-    const [title, counts] = titleRow.children as [Node, Node]
-    expect(title.props).toEqual({ bold: true })
-    expect(textOf(title)).toBe("opencode jobs")
-    expect(counts.props).toEqual({ dimColor: true })
-    expect(textOf(counts)).toBe("1 ready · 1 retrying · 1 running")
-    expect(rule.props).toEqual({ dimColor: true })
-    expect(textOf(rule)).toBe("─".repeat(48))
-  })
-
-  test("one job draws no header counts", async ($, on) => {
-    const w = world(on, [INSTANCES[1]])
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    expect(textOf(await $.ui.render(PANE))).not.toContain("1 retrying")
-  })
-
-  test("the root is padded and the jobs are a row apart", async ($, on) => {
-    const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    const tree = (await $.ui.render(PANE)) as Node
-    expect(tree.props).toEqual({
-      flexDirection: "column",
-      paddingX: 2,
-      paddingTop: 1,
-      paddingBottom: 1,
-    })
-    const list = findAll(tree, (node) => node.props?.rowGap === 1)[0]!
-    expect(list.children).toHaveLength(4)
-  })
-
-  test("in iTerm each live row gets 1: open and a dim copy, digits for live rows only", async ($, on) => {
-    const w = world(on, [...INSTANCES, STARTING_INSTANCE])
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    const tree = await $.ui.render(PANE)
-    const opens = buttonsOf(tree).filter((button) => button.label === "open")
-    const copies = buttonsOf(tree).filter((button) => button.label === "copy")
     expect(
-      opens.map((button) => [button.key, button.hotkey, button.plain]),
+      textOf(await $.ui.render(bandOf({ hasSurvey: true }))),
+    ).not.toContain("fix flaky")
+  })
+
+  test("rows are plain buttons with no digit hotkeys, the first auto-focused", async ($, on) => {
+    const w = world(on, INSTANCES)
+    await started($, w)
+
+    const buttons = findAll(
+      await $.ui.render(bandOf()),
+      (node) => node.type === "Button",
+    )
+    expect(
+      buttons.map((node) => [
+        node.props?.key,
+        node.props?.plain,
+        node.props?.hotkey,
+      ]),
     ).toEqual([
-      ["open:53817:ses_old", "1", true],
-      ["open:53900:ses_web", "2", true],
-      ["open:53817:ses_new", "3", true],
+      ["job:53817:ses_old", true, undefined],
+      ["job:53900:ses_web", true, undefined],
+      ["job:53817:ses_new", true, undefined],
     ])
-    expect(
-      copies.every((button) => button.dimColor === true && !button.hotkey),
-    ).toBe(true)
-    expect(copies).toHaveLength(3)
-    const drawn = textOf(tree)
-    expect(drawn).toContain("starting")
-    expect(drawn).toContain("1–3 open in iTerm · tab to copy · esc close")
+    expect(buttons[0]?.props?.autoFocus).toBe(true)
   })
 
-  test("outside iTerm the digit goes on copy and open is never drawn", async ($, on) => {
-    const w = world(on, INSTANCES, { termProgram: "WezTerm" })
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
+  test("focused: › marks the row, the list grows to maxRows, the footer names the keys", async ($, on) => {
+    const w = world(on, INSTANCES)
+    await started($, w)
 
-    const tree = await $.ui.render(PANE)
-    const buttons = buttonsOf(tree)
-    expect(buttons.some((button) => button.label === "open")).toBe(false)
-    expect(buttons.map((button) => [button.label, button.hotkey])).toEqual([
-      ["copy", "1"],
-      ["copy", "2"],
-      ["copy", "3"],
+    await focusRow($, "job:53900:ses_web")
+    expect(linesOf(await $.ui.render(bandOf()))).toEqual([
+      "  ✓  fix flaky retry test · api-gateway       1h",
+      "› ⚠  tidy checkout copy · acme-web           30m",
+      "  ◌  add rate limit header · api-gateway     10m",
+      "  ◌  fix nav focus ring · acme-web           40m",
+      "  ◌  lazy-load hero image · acme-web         50m",
+      "  enter open · c: copy · esc back",
     ])
-    expect(textOf(tree)).toContain("1–3 copy attach · esc close")
+    expect(linesOf(await $.ui.render(bandOf({ maxRows: 4 })))).toEqual([
+      "  ✓  fix flaky retry test · api-gateway       1h",
+      "› ⚠  tidy checkout copy · acme-web           30m",
+      "     +3 more",
+      "  enter open · c: copy · esc back",
+    ])
   })
 
-  test("on the desktop surface open is never drawn, even under iTerm", async ($, on) => {
+  test("focused Enter opens the job in iTerm", async ($, on) => {
     const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
+    await started($, w)
 
-    const tree = await $.ui.render(DESKTOP_PANE)
-    expect(buttonsOf(tree).some((button) => button.label === "open")).toBe(
-      false,
-    )
-    expect(textOf(tree)).toContain("copy attach")
-  })
-
-  test("open runs osascript with the iTerm script and toasts", async ($, on) => {
-    const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    await $.ui.render(PANE)
-    await $.ui.press({ plugin: "opencode", key: "open:53817:ses_new" })
+    await focusRow($, "job:53817:ses_new")
+    await $.ui.render(bandOf())
+    await $.ui.press({ plugin: "opencode", key: "job:53817:ses_new" })
 
     expect(w.ran).toEqual([["osascript", "-e", openScriptOf(53817, "ses_new")]])
     expect(w.toasts).toContain("Opened api-gateway in a new iTerm tab")
@@ -567,12 +479,11 @@ describe("jobs", () => {
 
   test("a failed open copies the attach command instead", async ($, on) => {
     const w = world(on, INSTANCES, { osascriptExit: 1 })
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
+    await started($, w)
 
-    await $.ui.render(PANE)
-    await $.ui.press({ plugin: "opencode", key: "open:53900:ses_web" })
+    await focusRow($, "job:53900:ses_web")
+    await $.ui.render(bandOf())
+    await $.ui.press({ plugin: "opencode", key: "job:53900:ses_web" })
 
     expect(w.copied).toEqual([
       "opencode attach http://127.0.0.1:53900 --session ses_web",
@@ -580,102 +491,113 @@ describe("jobs", () => {
     expect(w.toasts).toContain("Couldn't open iTerm, attach command copied")
   })
 
-  test("copy puts the attach command on the clipboard and toasts with repo", async ($, on) => {
+  test("focused c copies the focused row and briefly shows copied", async ($, on) => {
     const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
+    await started($, w)
 
-    await $.command.run(RUN)
-    await $.ui.render(PANE)
-    await $.ui.press({ plugin: "opencode", key: "copy:53817:ses_new" })
+    await focusRow($, "job:53817:ses_old")
+    await focusRow($, "job:53900:ses_web")
+    await $.ui.render(bandOf())
+    const copy = findAll(
+      await $.ui.render(bandOf()),
+      (node) => node.props?.key === "copy",
+    )[0]
+    expect(copy?.props?.hotkey).toBe("c")
+    await $.ui.press({ plugin: "opencode", key: "copy" })
 
     expect(w.copied).toEqual([
-      "opencode attach http://127.0.0.1:53817 --session ses_new",
+      "opencode attach http://127.0.0.1:53900 --session ses_web",
     ])
-    expect(w.toasts).toContain("Copied attach command for api-gateway")
     expect(w.ran).toEqual([])
-  })
-
-  test("a gone row is dim throughout and offers no action", async ($, on) => {
-    const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    const tree = await $.ui.render(PANE)
-    const keys = buttonsOf(tree).map((button) => button.key)
-    expect(keys.some((key) => key.includes("ses_dead"))).toBe(false)
-    const goneTexts = findAll(
-      tree,
-      (node) =>
-        node.type === "Text" &&
-        ["?", "rewrite the intro", "docs", "gone"].includes(textOf(node)),
+    expect(linesOf(await $.ui.render(bandOf()))[1]).toBe(
+      "› ⚠  tidy checkout copy · acme-web        copied",
     )
-    expect(goneTexts).toHaveLength(4)
-    expect(goneTexts.every((node) => node.props?.dimColor === true)).toBe(true)
+    await w.clock.advance(1500)
+    await w.clock.settle()
+    expect(linesOf(await $.ui.render(bandOf()))[1]).toEndWith("30m")
   })
 
-  test("Harbour palette: ANSI blue and yellow, default running, no background", async ($, on) => {
+  test("outside iTerm Enter copies and the footer says so", async ($, on) => {
+    const w = world(on, INSTANCES, { termProgram: "WezTerm" })
+    await started($, w)
+
+    await focusRow($, "job:53817:ses_old")
+    const tree = await $.ui.render(bandOf())
+    expect(linesOf(tree).at(-1)).toBe("  enter copy · esc back")
+    expect(findAll(tree, (node) => node.props?.key === "copy")).toEqual([])
+    await $.ui.press({ plugin: "opencode", key: "job:53817:ses_old" })
+
+    expect(w.ran).toEqual([])
+    expect(w.copied).toEqual([
+      "opencode attach http://127.0.0.1:53817 --session ses_old",
+    ])
+    expect(linesOf(await $.ui.render(bandOf()))[0]).toEndWith("copied")
+  })
+
+  test("the order freezes while focused, states still update, and unfreezes on leaving", async ($, on) => {
     const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
+    await started($, w)
 
-    const tree = await $.ui.render(PANE)
-    const colourOf = (text: string) =>
-      findAll(
-        tree,
-        (node) => node.type === "Text" && textOf(node) === text,
-      ).map((node) => node.props ?? {})
-    expect(colourOf("✓")).toEqual([{ color: "ansi256(12)" }])
-    expect(colourOf("ready")).toEqual([{ color: "ansi256(12)" }])
-    expect(colourOf("⚠")).toEqual([{ color: "ansi256(11)" }])
-    expect(colourOf("retrying")).toEqual([{ color: "ansi256(11)" }])
-    expect(colourOf("◌")).toEqual([{}])
-    expect(colourOf("running")).toEqual([{}])
-    const json = JSON.stringify(tree)
-    expect(json).not.toContain("backgroundColor")
-    expect(json.match(/"bold":true/g)).toHaveLength(1)
+    await focusRow($, "job:53817:ses_old")
+    w.live.statuses[53817] = {}
+    await tick(w)
+
+    const frozen = linesOf(await $.ui.render(bandOf()))
+    expect(frozen.slice(0, 3)).toEqual([
+      "› ✓  fix flaky retry test · api-gateway       1h",
+      "  ⚠  tidy checkout copy · acme-web           30m",
+      "  ✓  add rate limit header · api-gateway     10m",
+    ])
+
+    await $.prompt.edit(EDIT)
+    expect(linesOf(await $.ui.render(bandOf())).slice(0, 3)).toEqual([
+      "✓  add rate limit header · api-gateway       10m",
+      "✓  fix flaky retry test · api-gateway         1h",
+      "⚠  tidy checkout copy · acme-web             30m",
+    ])
   })
 
-  test("a long title truncates at the end", async ($, on) => {
+  test("idle and focused trees validate on the terminal and the desktop", async ($, on) => {
     const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
+    await started($, w)
+    await focusRow($, "job:53817:ses_old")
 
-    const tree = await $.ui.render(PANE)
-    const [title] = findAll(
-      tree,
-      (node) => node.type === "Text" && textOf(node) === "fix flaky retry test",
-    )
-    expect(title?.props?.wrap).toBe("truncate-end")
+    for (const surface of ["terminal", "desktop"] as const) {
+      const band = bandOf({}, surface)
+      const ui = await $.ui.mount({ plugin: "opencode", surface, component: "AbovePrompt", props: band.props })
+      expect(await ui.find({ type: "Button", key: "job:53817:ses_old" })).toBeDefined()
+      await ui.unmount()
+    }
   })
 
-  test("a port that does not answer within a second is gone", async ($, on) => {
-    const w = world(on, INSTANCES, { isHanging: true })
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-
-    const drawn = textOf(await $.ui.render(PANE))
-    expect(drawn).not.toContain("running")
-    expect(drawn).toContain("gone")
-    expect(drawn).toContain("esc close")
-    expect(drawn).not.toMatch(/\d+ (ready|retrying|running)/)
-    w.releases.forEach((release) => release())
-  })
-
-  test("the registry is re-read only when it changes", async ($, on) => {
+  test("the ready toast fires once, on the transition only", async ($, on) => {
     const w = world(on, INSTANCES)
-    await $.session.start(START)
-    await w.clock.advance(1000)
-    await w.clock.settle()
-    await w.clock.advance(10000)
-    await w.clock.settle()
+    await started($, w)
+    expect(w.toasts).toEqual([])
 
+    w.live.statuses[53817] = {}
+    await tick(w)
+    await tick(w)
+    expect(w.toasts).toEqual(["opencode · add rate limit header is ready"])
+
+    w.live.statuses[53817] = { ses_new: { type: "busy" } }
+    await tick(w)
+    w.live.statuses[53817] = {}
+    await tick(w)
+    expect(w.toasts).toEqual(["opencode · add rate limit header is ready"])
+  })
+
+  test("the registry is re-read only when it changes, ports polled every 5s", async ($, on) => {
+    const w = world(on, INSTANCES)
+    await started($, w)
+    const firstFetches = w.fetched.length
+    await tick(w)
+    await tick(w)
     expect(w.counts.reads).toBe(1)
-    expect(w.fetched.length).toBeGreaterThan(3)
+    expect(w.fetched.length).toBe(firstFetches * 3)
+
+    w.counts.mtime = 2
+    await tick(w)
+    expect(w.counts.reads).toBe(2)
   })
 })

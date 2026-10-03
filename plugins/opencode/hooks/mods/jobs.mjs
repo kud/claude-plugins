@@ -1,37 +1,12 @@
 import { atom, read, update } from "claude-code"
 
-export const PANE = "opencode-jobs"
-export const COMMAND = "opencode-jobs"
 export const POLL_MS = 5000
 export const FETCH_TIMEOUT_MS = 1000
-export const PANE_TITLE = "opencode jobs"
-export const EMPTY_TOAST = "No headless opencode jobs"
-export const EMPTY_LINES = [
-  "No headless jobs",
-  "Jobs started through mcp-opencode appear here.",
-]
-export const DESCRIPTION_ITERM =
-  "Headless opencode jobs: open one in a new iTerm tab, or copy its attach command"
-export const DESCRIPTION_COPY = "Headless opencode jobs: copy an attach command"
-
-// A width the person kept or dragged the dock to wins over this request.
-export const DOCK_COLUMNS = 52
-export const INLINE_ROWS_MAX = 18
-export const inlineRowsOf = (jobCount) =>
-  Math.min(6 + 3 * jobCount, INLINE_ROWS_MAX)
-
-const PANE_PADDING_X = 2
-const HEADER_GAP = 2
-const MAX_HOTKEYS = 9
+export const COPIED_MS = 1500
+export const IDLE_ROWS_MAX = 3
 
 export const DISPLAY_STATE_ORDER = { idle: 0, retry: 1, busy: 2, gone: 3 }
-export const STATE_WORDS = {
-  idle: "ready",
-  retry: "retrying",
-  busy: "running",
-  gone: "gone",
-}
-export const STARTING_WORD = "starting"
+export const STARTING_TITLE = "starting…"
 export const GLYPHS = { idle: "✓", retry: "⚠", busy: "◌", gone: "?" }
 // Palette indices 12 (bright blue) and 11 (bright yellow), so the terminal's own
 // theme paints them. A bare name such as "blueBright" is drawn as a fixed hex,
@@ -42,12 +17,26 @@ export const STATE_COLORS = {
   busy: {},
   gone: { dimColor: true },
 }
+export const FOOTER_OPEN = "enter open · c copy · esc back"
+export const FOOTER_COPY = "enter copy · esc back"
+export const COPY_KEY = "copy"
+
+const GLYPH_GAP = "  "
+const FOCUS_MARK = "› "
+const NO_MARK = "  "
+const IDLE_INDENT = "   "
+const FOCUSED_INDENT = "     "
 const GONE = { isReachable: false }
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_]+$/
+const ROW_KEY_PREFIX = "job:"
 
 const jobs = atom(
   { plugin: "opencode", key: "jobs" },
   { rows: [], updatedAt: 0 },
+)
+const focus = atom(
+  { plugin: "opencode", key: "focus" },
+  { isFocused: false, order: [], cursor: null, copied: null },
 )
 
 export const registryPathOf = (stateDir, home) =>
@@ -113,18 +102,16 @@ const stateOf = (live, sessionId) => {
   return type === "busy" || type === "retry" ? type : "idle"
 }
 
-export const wordOf = (row) =>
-  row.state === "busy" && !row.sessionId
-    ? STARTING_WORD
-    : STATE_WORDS[row.state]
-
-export const isActionable = (row) =>
-  Boolean(row.sessionId) && row.state !== "gone"
-
 const sessionsOf = (record) =>
   Array.isArray(record.sessions) && record.sessions.length > 0
     ? record.sessions
-    : [{ id: null, title: "no session yet", startedAt: record.startedAt }]
+    : [{ id: null, title: STARTING_TITLE, startedAt: record.startedAt }]
+
+export const rowKeyOf = (row) =>
+  `${ROW_KEY_PREFIX}${row.port}:${row.sessionId ?? "starting"}`
+
+const isRowKey = (key) =>
+  typeof key === "string" && key.startsWith(ROW_KEY_PREFIX)
 
 export const rowsOf = (records, liveByPort) =>
   records
@@ -134,16 +121,63 @@ export const rowsOf = (records, liveByPort) =>
         port: record.port,
         repo: repoOf(record.directory),
         sessionId: session.id ?? null,
-        title: session.title || "untitled",
+        title: session.id ? session.title || "untitled" : STARTING_TITLE,
         startedAt: session.startedAt ?? record.startedAt ?? "",
         state: stateOf(live, session.id),
       }))
     })
+    .filter((row) => row.state !== "gone")
     .sort(
       (a, b) =>
         DISPLAY_STATE_ORDER[a.state] - DISPLAY_STATE_ORDER[b.state] ||
         (Date.parse(b.startedAt) || 0) - (Date.parse(a.startedAt) || 0),
     )
+
+const truncate = (text, room) => {
+  if (text.length <= room) return text
+  if (room <= 1) return "…"
+  return `${text.slice(0, room - 1)}…`
+}
+
+// One row's text fitted to `columns`: the repo goes first, then the title is
+// cut with an ellipsis; the age (or "copied") always sits at the right edge.
+export const rowLayoutOf = (row, { columns, prefix, tail }) => {
+  const fixed = prefix.length + 1 + GLYPH_GAP.length + 1 + tail.length
+  const room = Math.max(1, columns - fixed)
+  const withRepo = row.title.length + 3 + row.repo.length
+  const repo = withRepo <= room ? row.repo : ""
+  const title = repo ? row.title : truncate(row.title, room)
+  const used = title.length + (repo ? 3 + repo.length : 0)
+  const pad = Math.max(
+    1,
+    columns - prefix.length - 1 - GLYPH_GAP.length - used - tail.length,
+  )
+  return { title, repo, pad }
+}
+
+// Idle: at most three job rows, the "+N more" line counting toward maxRows.
+export const idleSliceOf = (rows, maxRows) => {
+  const limit = Math.min(IDLE_ROWS_MAX, Math.max(0, maxRows))
+  if (rows.length <= limit) return { shown: rows, overflow: 0 }
+  const shown = rows.slice(0, Math.min(IDLE_ROWS_MAX, Math.max(0, maxRows - 1)))
+  return { shown, overflow: rows.length - shown.length }
+}
+
+// Focused: the order frozen at focus time, rows that appeared since appended,
+// gone ones dropped; up to maxRows less the footer, overflow line included.
+export const focusedSliceOf = (rows, order, maxRows) => {
+  const byKey = new Map(rows.map((row) => [rowKeyOf(row), row]))
+  const kept = order
+    .filter((key) => byKey.has(key))
+    .map((key) => byKey.get(key))
+  const known = new Set(order)
+  const added = rows.filter((row) => !known.has(rowKeyOf(row)))
+  const all = [...kept, ...added]
+  const limit = Math.max(0, maxRows - 1)
+  if (all.length <= limit) return { shown: all, overflow: 0 }
+  const shown = all.slice(0, Math.max(0, limit - 1))
+  return { shown, overflow: all.length - shown.length }
+}
 
 const withTimeout = async ($, promise, ms) => {
   const timedOut = $.clock.sleep(ms).then(() => GONE)
@@ -178,6 +212,11 @@ const probeAll = async ($, records) => {
 let registryStamp = null
 let records = []
 let isPolling = false
+let hasPolled = false
+let drawnSignature = null
+let lastStates = new Map()
+const toastedKeys = new Set()
+let isFocusedMirror = false
 
 const readRecords = async ($, path) => {
   let stat
@@ -199,6 +238,29 @@ const readRecords = async ($, path) => {
   return records
 }
 
+const signatureOf = (rows, now) =>
+  JSON.stringify(
+    rows.map((row) => [
+      rowKeyOf(row),
+      row.state,
+      row.title,
+      row.repo,
+      ageOf(row.startedAt, now),
+    ]),
+  )
+
+const toastNewlyReady = ($, rows) => {
+  for (const row of rows) {
+    const key = rowKeyOf(row)
+    const previous = lastStates.get(key)
+    if (row.state !== "idle" || !row.sessionId) continue
+    if (!hasPolled || previous === "idle" || toastedKeys.has(key)) continue
+    toastedKeys.add(key)
+    $.ui.toast(`opencode · ${row.title} is ready`)
+  }
+  lastStates = new Map(rows.map((row) => [rowKeyOf(row), row.state]))
+}
+
 const poll = async ($, path) => {
   if (isPolling) return
   isPolling = true
@@ -207,71 +269,51 @@ const poll = async ($, path) => {
     const liveByPort = current.length > 0 ? await probeAll($, current) : {}
     const rows = rowsOf(current, liveByPort)
     const now = await $.clock.now()
+    toastNewlyReady($, rows)
+    hasPolled = true
+    const signature = signatureOf(rows, now)
+    if (signature === drawnSignature) return
+    drawnSignature = signature
     await update($, jobs, () => ({ rows, updatedAt: now }))
   } finally {
     isPolling = false
   }
 }
 
-const countByWord = (rows) => {
-  const counts = { ready: 0, retrying: 0, running: 0 }
-  for (const row of rows) {
-    if (row.state === "idle") counts.ready++
-    else if (row.state === "retry") counts.retrying++
-    else if (row.state === "busy") counts.running++
-  }
-  return counts
-}
-
-export const headerCountsOf = (rows, room) => {
-  if (rows.length < 2) return ""
-  const counts = countByWord(rows)
-  const parts = Object.entries(counts)
-    .filter(([, count]) => count > 0)
-    .map(([word, count]) => `${count} ${word}`)
-  while (parts.length > 0 && parts.join(" · ").length > room) parts.pop()
-  return parts.join(" · ")
-}
-
-export const footerOf = (actionableCount, canOpen) => {
-  if (actionableCount === 0) return "esc close"
-  const last = Math.min(actionableCount, MAX_HOTKEYS)
-  const digits = last === 1 ? "1" : `1–${last}`
-  return canOpen
-    ? `${digits} open in iTerm · tab to copy · esc close`
-    : `${digits} copy attach · esc close`
-}
-
-const innerColumnsOf = (bodyColumns) =>
-  Math.max(1, bodyColumns - 2 * PANE_PADDING_X)
-
-const headerView = ({ Box, Text }, rows, bodyColumns) => {
-  const inner = innerColumnsOf(bodyColumns)
-  const counts = headerCountsOf(rows, inner - PANE_TITLE.length - HEADER_GAP)
-  return Box({
-    flexDirection: "column",
-    marginBottom: 1,
-    children: [
-      Box({
-        justifyContent: "space-between",
-        children: [
-          Text({ bold: true, children: [PANE_TITLE] }),
-          counts ? Text({ dimColor: true, children: [counts] }) : null,
-        ].filter(Boolean),
-      }),
-      Text({ dimColor: true, children: ["─".repeat(inner)] }),
-    ],
+const setFocus = async ($, fn) => {
+  await update($, focus, (value) => {
+    const next = fn(value)
+    isFocusedMirror = next.isFocused
+    return next
   })
 }
 
-const footerView = ({ Box, Text }, text) =>
-  Box({
-    marginTop: 1,
-    children: [Text({ dimColor: true, children: [text] })],
-  })
+const leaveFocus = ($) =>
+  setFocus($, (value) => ({
+    ...value,
+    isFocused: false,
+    order: [],
+    cursor: null,
+  }))
 
 const copyAttach = ($, row, surface) =>
   $.ui.copy({ text: attachCommandOf(row.port, row.sessionId), surface })
+
+const showCopied = async ($, key) => {
+  await setFocus($, (value) => ({ ...value, copied: key }))
+  $.clock.after(COPIED_MS, () => {
+    void setFocus($, (value) =>
+      value.copied === key ? { ...value, copied: null } : value,
+    )
+  })
+}
+
+const copyRow = async ($, row, surface) => {
+  if (!row.sessionId) return
+  const copied = await copyAttach($, row, surface)
+  if (copied.isCopied) await showCopied($, rowKeyOf(row))
+  else $.ui.toast(`not copied: ${copied.reason}`)
+}
 
 const didRunOsascript = async ($, script) => {
   try {
@@ -282,7 +324,7 @@ const didRunOsascript = async ($, script) => {
   }
 }
 
-const openInIterm = async ($, row, press) => {
+const openInIterm = async ($, row, surface) => {
   const script = openScriptOf(row.port, row.sessionId)
   if (!script) {
     $.ui.toast(`Refused to open ${row.repo}: unexpected session id or port`)
@@ -292,7 +334,7 @@ const openInIterm = async ($, row, press) => {
     $.ui.toast(`Opened ${row.repo} in a new iTerm tab`)
     return
   }
-  const copied = await copyAttach($, row, press.surface)
+  const copied = await copyAttach($, row, surface)
   $.ui.toast(
     copied.isCopied
       ? "Couldn't open iTerm, attach command copied"
@@ -300,124 +342,78 @@ const openInIterm = async ($, row, press) => {
   )
 }
 
-const copyButtonOf = ({ Button }, $, row, hotkey, isSecondary) =>
-  Button({
-    key: `copy:${row.port}:${row.sessionId}`,
-    label: "copy",
-    plain: true,
-    ...(isSecondary ? { dimColor: true } : {}),
-    ...(hotkey ? { hotkey } : {}),
-    onPress: async (press) => {
-      const copied = await copyAttach($, row, press.surface)
-      $.ui.toast(
-        copied.isCopied
-          ? `Copied attach command for ${row.repo}`
-          : `not copied: ${copied.reason}`,
-      )
-    },
+const rowView = ({ Box, Text, Button }, $, row, view) => {
+  const key = rowKeyOf(row)
+  const tail = view.copied === key ? "copied" : ageOf(row.startedAt, view.now)
+  const prefix = view.isFocused
+    ? view.cursor === key
+      ? FOCUS_MARK
+      : NO_MARK
+    : ""
+  const { title, repo, pad } = rowLayoutOf(row, {
+    columns: view.columns,
+    prefix,
+    tail,
   })
-
-const actionsView = (elements, $, row, hotkey, canOpen) => {
-  const { Box, Button } = elements
-  const buttons = canOpen
-    ? [
-        Button({
-          key: `open:${row.port}:${row.sessionId}`,
-          label: "open",
-          plain: true,
-          ...(hotkey ? { hotkey } : {}),
-          onPress: (press) => openInIterm($, row, press),
-        }),
-        copyButtonOf(elements, $, row, undefined, true),
-      ]
-    : [copyButtonOf(elements, $, row, hotkey, false)]
-  return Box({
-    flexDirection: "column",
-    flexShrink: 0,
-    paddingLeft: 2,
-    children: buttons,
-  })
+  const children = [
+    prefix ? Text({ children: [prefix] }) : null,
+    Text({ ...STATE_COLORS[row.state], children: [GLYPHS[row.state]] }),
+    Text({ children: [GLYPH_GAP] }),
+    Button({
+      key,
+      label: title,
+      plain: true,
+      ...(view.isFirst ? { autoFocus: true } : {}),
+      onPress: (press) => {
+        if (!row.sessionId) return
+        return view.canOpen
+          ? openInIterm($, row, press.surface)
+          : copyRow($, row, press.surface)
+      },
+    }),
+    repo ? Text({ dimColor: true, children: [` · ${repo}`] }) : null,
+    Text({ children: [" ".repeat(pad)] }),
+    Text({ dimColor: true, children: [tail] }),
+  ].filter(Boolean)
+  return Box({ children })
 }
 
-const rowView = (elements, $, row, hotkey, now, canOpen) => {
-  const { Box, Text } = elements
-  const isGone = row.state === "gone"
-  const dim = isGone ? { dimColor: true } : {}
-  const stateColor = STATE_COLORS[row.state]
-
-  const titleLine = Box({
+const overflowView = ({ Text }, overflow, isFocused) =>
+  Text({
+    dimColor: true,
     children: [
-      Text({ ...stateColor, children: [GLYPHS[row.state]] }),
-      Box({
-        paddingLeft: 2,
-        flexShrink: 1,
-        minWidth: 0,
-        children: [
-          Text({ ...dim, wrap: "truncate-end", children: [row.title] }),
-        ],
-      }),
+      isFocused
+        ? `${FOCUSED_INDENT}+${overflow} more`
+        : `${IDLE_INDENT}+${overflow} more · ctrl+x tab`,
     ],
   })
 
-  const factsLine = Box({
-    paddingLeft: 3,
+const footerView = ({ Box, Text, Button }, $, rows, view) => {
+  if (!view.canOpen)
+    return Text({ dimColor: true, children: [`${NO_MARK}${FOOTER_COPY}`] })
+  const copyCursor = async (press) => {
+    const { cursor } = await read($, focus)
+    const row = rows.find((candidate) => rowKeyOf(candidate) === cursor)
+    if (row) await copyRow($, row, press.surface)
+  }
+  return Box({
     children: [
-      Box({
-        flexShrink: 1,
-        minWidth: 0,
-        children: [
-          Text({ dimColor: true, wrap: "truncate-end", children: [row.repo] }),
-        ],
-      }),
-      Text({ dimColor: true, children: [" · "] }),
-      Text({ ...stateColor, children: [wordOf(row)] }),
-      Text({
+      Text({ dimColor: true, children: [`${NO_MARK}enter open · `] }),
+      Button({
+        key: COPY_KEY,
+        label: "copy",
+        hotkey: "c",
+        plain: true,
         dimColor: true,
-        children: [` · ${ageOf(row.startedAt, now)}`],
+        onPress: copyCursor,
       }),
+      Text({ dimColor: true, children: [" · esc back"] }),
     ],
-  })
-
-  return Box({
-    children: [
-      Box({
-        flexDirection: "column",
-        flexGrow: 1,
-        flexShrink: 1,
-        minWidth: 0,
-        children: [titleLine, factsLine],
-      }),
-      isActionable(row) ? actionsView(elements, $, row, hotkey, canOpen) : null,
-    ].filter(Boolean),
-  })
-}
-
-export const summaryText = (rows) =>
-  rows.length === 0
-    ? EMPTY_TOAST
-    : rows
-        .map(
-          (row) =>
-            `${GLYPHS[row.state]} ${wordOf(row)} ${row.repo} ${row.title}`,
-        )
-        .join("\n")
-
-const hotkeysOf = (rows) => {
-  let next = 0
-  return rows.map((row) => {
-    if (!isActionable(row)) return undefined
-    next += 1
-    return next <= MAX_HOTKEYS ? String(next) : undefined
   })
 }
 
 export const register = (on) => {
   on("session.start", async ($, e, next) => {
-    const canOpen = canOpenIn(e.surface, await $.env.get("TERM_PROGRAM"))
-    await $.command.register({
-      name: COMMAND,
-      description: canOpen ? DESCRIPTION_ITERM : DESCRIPTION_COPY,
-    })
     const path = registryPathOf(
       await $.env.get("MCP_OPENCODE_STATE_DIR"),
       await $.env.get("HOME"),
@@ -429,64 +425,69 @@ export const register = (on) => {
     return next(e)
   })
 
-  on("command.run", { command: COMMAND }, async ($) => {
-    const { rows } = await read($, jobs)
-    if (rows.length === 0) {
-      $.ui.toast(EMPTY_TOAST)
-      return {}
+  // The band has no "focused" prop: the ring landing on one of our rows is the
+  // sign it took the keyboard, and the person editing the prompt that it left.
+  on("ui.focus", { component: "AbovePrompt" }, async ($, e, next) => {
+    const result = await next(e)
+    if (result?.deny) return result
+    const isOurs = e.plugin === "opencode"
+    if (isOurs && e.element === COPY_KEY) return result
+    if (!isOurs || !isRowKey(e.element)) {
+      if (isFocusedMirror) await leaveFocus($)
+      return result
     }
-    const opened = await $.ui.open({
-      id: PANE,
-      title: PANE_TITLE,
-      focus: true,
-      closeOnEscape: true,
-      columns: DOCK_COLUMNS,
-      rows: inlineRowsOf(rows.length),
-    })
-    if (opened.isPlaced) return {}
-    return { text: summaryText(rows) }
+    const { rows } = await read($, jobs)
+    await setFocus($, (value) => ({
+      ...value,
+      isFocused: true,
+      order: value.isFocused ? value.order : rows.map(rowKeyOf),
+      cursor: e.element,
+    }))
+    return result
   })
 
-  on("ui.render", { component: "Pane", requestId: PANE }, async ($, e) => {
-    const elements = $.ui.resolve(e)
-    const { Box, Text } = elements
+  on("prompt.edit", async ($, e, next) => {
+    if (isFocusedMirror) await leaveFocus($)
+    return next(e)
+  })
+
+  on("prompt.submit", async ($, e, next) => {
+    if (isFocusedMirror) await leaveFocus($)
+    return next(e)
+  })
+
+  on("ui.render", { component: "AbovePrompt" }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
     const { rows, updatedAt } = await read($, jobs)
-    const bodyColumns = e.props.bodyColumns
-    const root = (children) =>
-      Box({
-        flexDirection: "column",
-        paddingX: PANE_PADDING_X,
-        paddingTop: 1,
-        paddingBottom: 1,
-        children,
-      })
+    if (rows.length === 0) return next(e)
 
-    if (rows.length === 0) {
-      return root([
-        headerView(elements, rows, bodyColumns),
-        Box({
-          flexDirection: "column",
-          children: EMPTY_LINES.map((line) =>
-            Text({ dimColor: true, children: [line] }),
-          ),
-        }),
-        footerView(elements, footerOf(0, false)),
-      ])
-    }
-
+    const elements = $.ui.resolve(e)
+    const { Box } = elements
+    const focused = await read($, focus)
+    const isFocused = focused.isFocused
     const canOpen = canOpenIn(e.surface, await $.env.get("TERM_PROGRAM"))
-    const hotkeys = hotkeysOf(rows)
-    const actionableCount = rows.filter(isActionable).length
-    return root([
-      headerView(elements, rows, bodyColumns),
-      Box({
-        flexDirection: "column",
-        rowGap: 1,
-        children: rows.map((row, index) =>
-          rowView(elements, $, row, hotkeys[index], updatedAt, canOpen),
-        ),
+    const { shown, overflow } = isFocused
+      ? focusedSliceOf(rows, focused.order, e.props.maxRows)
+      : idleSliceOf(rows, e.props.maxRows)
+
+    const lines = shown.map((row, index) =>
+      rowView(elements, $, row, {
+        columns: e.props.bodyColumns,
+        now: updatedAt,
+        isFocused,
+        isFirst: index === 0,
+        cursor: focused.cursor,
+        copied: focused.copied,
+        canOpen,
       }),
-      footerView(elements, footerOf(actionableCount, canOpen)),
-    ])
+    )
+    if (overflow > 0) lines.push(overflowView(elements, overflow, isFocused))
+    if (isFocused) lines.push(footerView(elements, $, rows, { canOpen }))
+
+    const below = await next(e)
+    return Box({
+      flexDirection: "column",
+      children: below ? [...lines, below] : lines,
+    })
   })
 }

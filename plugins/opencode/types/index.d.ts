@@ -14,8 +14,15 @@ export type OpencodeJobs = {
   updatedAt: number
 }
 
+export type OpencodeJobsFocus = {
+  isFocused: boolean
+  order: string[]
+  cursor: string | null
+  copied: string | null
+}
+
 declare module 'claude-code' {
   interface PluginState {
-    opencode: { jobs: OpencodeJobs }
+    opencode: { jobs: OpencodeJobs; focus: OpencodeJobsFocus }
   }
 }
