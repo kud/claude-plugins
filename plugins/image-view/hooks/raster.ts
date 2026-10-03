@@ -171,10 +171,22 @@ export function cellsOf(
   return toBase64(new Uint8Array(words.buffer))
 }
 
-/** True only where the terminal draws the `Image` element itself (kitty graphics). */
+const isForced = (value: string | undefined): boolean =>
+  value !== undefined && !["", "0", "false"].includes(value.trim().toLowerCase())
+
+/**
+ * True only where the terminal draws the `Image` element itself (kitty graphics). The
+ * mod API reports no such capability, so this mirrors Claude Code: its force override
+ * (iTerm2 nightly and other kitty-graphics terminals), then kitty and Ghostty.
+ */
 export function canDrawImages(env: {
   TERM?: string
   TERM_PROGRAM?: string
+  CLAUDE_CODE_FORCE_TERMINAL_IMAGES?: string
 }): boolean {
-  return env.TERM === "xterm-kitty" || env.TERM_PROGRAM === "ghostty"
+  return (
+    isForced(env.CLAUDE_CODE_FORCE_TERMINAL_IMAGES) ||
+    env.TERM === "xterm-kitty" ||
+    env.TERM_PROGRAM === "ghostty"
+  )
 }

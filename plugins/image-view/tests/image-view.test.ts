@@ -207,6 +207,21 @@ describe("canDrawImages", () => {
     ).toBe(false)
     expect(canDrawImages({})).toBe(false)
   })
+
+  test("the force override draws Image anywhere, iTerm2 included", () => {
+    const iTerm = { TERM: "xterm-256color", TERM_PROGRAM: "iTerm.app" }
+    expect(
+      canDrawImages({ ...iTerm, CLAUDE_CODE_FORCE_TERMINAL_IMAGES: "1" }),
+    ).toBe(true)
+    expect(canDrawImages({ CLAUDE_CODE_FORCE_TERMINAL_IMAGES: "true" })).toBe(
+      true,
+    )
+    for (const off of ["", "0", "false"]) {
+      expect(
+        canDrawImages({ ...iTerm, CLAUDE_CODE_FORCE_TERMINAL_IMAGES: off }),
+      ).toBe(false)
+    }
+  })
 })
 
 describe("layout", () => {
@@ -489,6 +504,39 @@ test("a kitty-protocol terminal keeps the Image element", async ($, on) => {
   expect(await ui.find({ type: "Raster" })).toBeUndefined()
   // #2 has no cached file, so it gets a placeholder tile instead of a broken Image.
   expect(await ui.find({ type: "Text", text: "no preview" })).toBeDefined()
+  await ui.unmount()
+})
+
+test("iTerm2 with the force override draws Image, not Raster", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM_PROGRAM: "iTerm.app",
+    CLAUDE_CODE_FORCE_TERMINAL_IMAGES: "1",
+  })
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, "see [Image #1]")
+  on("fs.read", () => ({ value: { base64: pngHead(800, 400) } }))
+  const runs: string[][] = []
+  on("process.run", ($, e) => {
+    runs.push([...e.argv])
+    return { value: ok }
+  })
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  const image = await ui.find({ type: "Image" })
+  expect(image?.props).toMatchObject({
+    source: { file: `${dir}/1.png`, format: "png" },
+  })
+  expect(await ui.find({ type: "Raster" })).toBeUndefined()
+  expect(runs.some((argv) => argv[0] === "sips" && argv[1] === "-z")).toBe(false)
   await ui.unmount()
 })
 

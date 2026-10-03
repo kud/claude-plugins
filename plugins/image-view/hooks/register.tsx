@@ -271,13 +271,15 @@ async function openFullSize($: EngineInterface, n: number, imagePath: string) {
 
 export const register: Register = (on) => {
   on("session.start", async ($, e, next) => {
-    const [term, termProgram] = await Promise.all([
+    const [term, termProgram, forceImages] = await Promise.all([
       $.env.get("TERM"),
       $.env.get("TERM_PROGRAM"),
+      $.env.get("CLAUDE_CODE_FORCE_TERMINAL_IMAGES"),
     ])
     canDraw = canDrawImages({
       TERM: term ?? undefined,
       TERM_PROGRAM: termProgram ?? undefined,
+      CLAUDE_CODE_FORCE_TERMINAL_IMAGES: forceImages ?? undefined,
     })
     $.clock.every(POLL_MS, () => check($))
     return next(e)
