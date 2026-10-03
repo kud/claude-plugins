@@ -1,7 +1,14 @@
 import { describe, expect, mock, test } from "claude-code/testing"
 import type { FoundElement, TestBody } from "claude-code/testing"
 
-import { fitCells, fitRow, imageNumbers, pngSize } from "../hooks/layout"
+import {
+  IMAGE_CELL_ASPECT,
+  cellAspectOf,
+  fitCells,
+  fitRow,
+  imageNumbers,
+  pngSize,
+} from "../hooks/layout"
 import {
   canDrawImages,
   cellsOf,
@@ -283,6 +290,31 @@ describe("layout", () => {
   })
 })
 
+describe("cell aspect", () => {
+  test("an Image box is sized for the real cell, so the picture fills it", () => {
+    // 2:1 at 17 rows: 68 columns for square samples (Raster), 78 for a 2.3 cell (Image).
+    expect(fitRow([{ width: 800, height: 400 }], 20, 120)).toEqual([
+      { columns: 68, rows: 17 },
+    ])
+    expect(
+      fitRow([{ width: 800, height: 400 }], 20, 120, IMAGE_CELL_ASPECT),
+    ).toEqual([{ columns: 78, rows: 17 }])
+    // Wider than the band: the rows shrink by the same cell aspect.
+    expect(fitCells({ width: 3000, height: 500 }, 20, 118, 2.5)).toEqual({
+      columns: 118,
+      rows: 8,
+    })
+  })
+
+  test("IMAGE_VIEW_CELL_ASPECT overrides it within 1 to 4", () => {
+    expect(cellAspectOf(undefined)).toBe(IMAGE_CELL_ASPECT)
+    expect(cellAspectOf("2.5")).toBe(2.5)
+    for (const bad of ["", " ", "wide", "0", "0.5", "9"]) {
+      expect(cellAspectOf(bad)).toBe(IMAGE_CELL_ASPECT)
+    }
+  })
+})
+
 const BAND = {
   plugin: "image-view",
   component: "AbovePrompt",
@@ -470,7 +502,7 @@ test("an oversized PNG still gets its aspect from sips", async ($, on) => {
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({
     source: { file: `${dir}/1.png`, format: "png" },
-    columns: 68,
+    columns: 78,
     rows: 17,
   })
   await ui.unmount()
@@ -498,8 +530,8 @@ test("a kitty-protocol terminal keeps the Image element", async ($, on) => {
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({
     source: { file: `${dir}/1.png`, format: "png" },
-    columns: 64,
-    rows: 16,
+    columns: 60,
+    rows: 13,
   })
   expect(await ui.find({ type: "Raster" })).toBeUndefined()
   // #2 has no cached file, so it gets a placeholder tile instead of a broken Image.
@@ -540,109 +572,30 @@ test("iTerm2 with the force override draws Image, not Raster", async ($, on) => 
   await ui.unmount()
 })
 
-const IMGCAT = "/Applications/iTerm.app/Contents/Resources/utilities/imgcat"
-
-async function bandWithOneImage(
-  $: Parameters<TestBody>[0],
-  on: Parameters<TestBody>[1],
-  env: Record<string, string>,
-  answer: (argv: readonly string[]) => number,
-) {
+test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled #n", async ($, on) => {
   const clock = mock.clock(on)
   mock.env(on, {
     CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
-    TMPDIR: "/var/folders/xy/T/",
-    HOME: "/Users/someone",
-    ...env,
+    TERM_PROGRAM: "iTerm.app",
+    CLAUDE_CODE_FORCE_TERMINAL_IMAGES: "1",
+    IMAGE_VIEW_CELL_ASPECT: "2.5",
   })
   const dir = "/tmp/claude-501/-work/sess-1/images"
-  imageWorld(on, dir, "see [Image #1]", [IMGCAT])
+  imageWorld(on, dir, "see [Image #1]")
   on("fs.read", () => ({ value: { base64: pngHead(800, 400) } }))
-  const runs: string[][] = []
-  const writes: { path: string; text: string }[] = []
-  on("process.run", ($, e) => {
-    runs.push([...e.argv])
-    return { value: { ...ok, exitCode: answer(e.argv) } }
-  })
-  on("fs.write", ($, e) => {
-    writes.push({ path: e.path, text: e.text })
-    return { value: undefined }
-  })
+  on("process.run", () => ({ value: ok }))
+
   await $.session.start({
     surface: "terminal",
     isInteractive: true,
     cwd: "/work",
   })
   await clock.advance(200)
+
   const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
-  return { ui, runs, writes, image: `${dir}/1.png` }
-}
-
-test("each tile's label is a button, hotkeyed by its image number", async ($, on) => {
-  const { ui } = await bandWithOneImage(
-    $,
-    on,
-    { TERM_PROGRAM: "ghostty" },
-    () => 0,
-  )
-  const button = await ui.find({ type: "Button" })
-  expect(button?.props).toMatchObject({
-    key: "open-1",
-    hotkey: "1",
-    label: "full size",
-  })
-  await ui.unmount()
-})
-
-test("in iTerm2, full size splits Claude Code's own session and runs imgcat", async ($, on) => {
-  const { ui, runs, writes, image } = await bandWithOneImage(
-    $,
-    on,
-    { TERM_PROGRAM: "iTerm.app", ITERM_SESSION_ID: "w0t1p0:ABC-123" },
-    () => 0,
-  )
-  await ui.press({ key: "open-1" })
-  const script = "/var/folders/xy/T/image-view/view-1.zsh"
-  expect(writes).toHaveLength(1)
-  expect(writes[0]!.path).toBe(script)
-  expect(writes[0]!.text).toContain(`'${IMGCAT}' '${image}'`)
-  const osascript = runs.find((argv) => argv[0] === "osascript")
-  expect(osascript?.[2]).toContain('if unique id of aSession is "ABC-123"')
-  expect(osascript?.[2]).toContain(
-    `split vertically with default profile command "/bin/zsh -f '${script}'"`,
-  )
-  expect(runs.some((argv) => argv.join(" ").includes("qlmanage"))).toBe(false)
-  await ui.unmount()
-})
-
-test("in iTerm2, a failed split falls back to Quick Look", async ($, on) => {
-  const { ui, runs, image } = await bandWithOneImage(
-    $,
-    on,
-    { LC_TERMINAL: "iTerm2" },
-    (argv) => (argv[0] === "osascript" ? 1 : 0),
-  )
-  await ui.press({ key: "open-1" })
-  expect(runs.at(-1)).toEqual([
-    "/bin/sh",
-    "-c",
-    'qlmanage -p "$1" >/dev/null 2>&1 &',
-    "image-view",
-    image,
-  ])
-  await ui.unmount()
-})
-
-test("outside iTerm2, full size goes straight to Quick Look", async ($, on) => {
-  const { ui, runs, writes } = await bandWithOneImage(
-    $,
-    on,
-    { TERM_PROGRAM: "ghostty" },
-    () => 0,
-  )
-  await ui.press({ key: "open-1" })
-  expect(runs.some((argv) => argv[0] === "osascript")).toBe(false)
-  expect(writes).toHaveLength(0)
-  expect(runs.at(-1)?.[2]).toContain("qlmanage -p")
+  const image = await ui.find({ type: "Image" })
+  expect(image?.props).toMatchObject({ columns: 85, rows: 17 })
+  expect(await ui.find({ type: "Text", text: "#1" })).toBeDefined()
+  expect(await ui.find({ type: "Button" })).toBeUndefined()
   await ui.unmount()
 })
