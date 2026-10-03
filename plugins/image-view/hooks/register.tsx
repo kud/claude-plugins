@@ -5,6 +5,18 @@ import type { PastedImage } from "../types"
 import { fitRow, imageNumbers, pngSize } from "./layout"
 import type { Size } from "./layout"
 import { canDrawImages, cellsOf, fromBase64, parseBmp } from "./raster"
+import {
+  IMGCAT_CANDIDATES,
+  chooseViewer,
+  expandHome,
+  hotkeyOf,
+  iTermSessionUuid,
+  openLabel,
+  paneCommand,
+  paneScript,
+  quickLookArgv,
+  splitScript,
+} from "./viewer"
 
 // Pasting an image raises no prompt.edit (the tag only shows up on the next keystroke),
 // so the draft is polled instead.
@@ -190,6 +202,73 @@ async function decode(
   }
 }
 
+async function findImgcat($: EngineInterface): Promise<string | null> {
+  const home = (await $.env.get("HOME")) ?? undefined
+  for (const candidate of IMGCAT_CANDIDATES) {
+    const path = expandHome(candidate, home)
+    if (path !== undefined && (await $.fs.exists(path).catch(() => false)))
+      return path
+  }
+  try {
+    const { exitCode, stdout } = await $.process.run([
+      "/usr/bin/which",
+      "imgcat",
+    ])
+    const path = stdout.trim()
+    return exitCode === 0 && path !== "" ? path : null
+  } catch {
+    return null
+  }
+}
+
+async function openInITermSplit(
+  $: EngineInterface,
+  n: number,
+  imagePath: string,
+): Promise<boolean> {
+  try {
+    const tmp = ((await $.env.get("TMPDIR")) ?? "/tmp").replace(/\/+$/, "")
+    const dir = `${tmp}/image-view`
+    const scriptPath = `${dir}/view-${n}.zsh`
+    await $.process.run(["mkdir", "-p", dir])
+    await $.fs.write(scriptPath, paneScript(imagePath, await findImgcat($)))
+    const uuid = iTermSessionUuid(
+      (await $.env.get("ITERM_SESSION_ID")) ?? undefined,
+    )
+    const { exitCode } = await $.process.run([
+      "osascript",
+      "-e",
+      splitScript(paneCommand(scriptPath), uuid),
+    ])
+    return exitCode === 0
+  } catch {
+    return false
+  }
+}
+
+async function openFullSize($: EngineInterface, n: number, imagePath: string) {
+  // A digit typed into an empty composer can press a band Button; only act while the
+  // draft still carries this image's tag.
+  if (!imageNumbers((await $.prompt.read()).text).includes(n)) return
+  const [termProgram, lcTerminal] = await Promise.all([
+    $.env.get("TERM_PROGRAM"),
+    $.env.get("LC_TERMINAL"),
+  ])
+  const viewer = chooseViewer({
+    TERM_PROGRAM: termProgram ?? undefined,
+    LC_TERMINAL: lcTerminal ?? undefined,
+  })
+  if (viewer === "iterm-split" && (await openInITermSplit($, n, imagePath)))
+    return
+  try {
+    const { exitCode } = await $.process.run(quickLookArgv(imagePath))
+    if (exitCode === 0) return
+  } catch {
+    // Reported below.
+  }
+  $.ui.toast(`image-view: could not open image #${n}`)
+}
+
 export const register: Register = (on) => {
   on("session.start", async ($, e, next) => {
     const [term, termProgram] = await Promise.all([
@@ -209,7 +288,7 @@ export const register: Register = (on) => {
     const list = await read($, images)
     if (list.length === 0) return next(e)
 
-    const { Box, Text, Image, Raster } = $.ui.resolve(e)
+    const { Box, Text, Image, Raster, Button } = $.ui.resolve(e)
     const cells = fitRow(
       list.map((image) => image.size),
       e.props.maxRows,
@@ -297,7 +376,18 @@ export const register: Register = (on) => {
                 ) : (
                   rasterFor(image.path, columns, rows, image.n)
                 )}
-                <Text dimColor>#{image.n}</Text>
+                {image.path === null ? (
+                  <Text dimColor>#{image.n}</Text>
+                ) : (
+                  <Button
+                    key={`open-${image.n}`}
+                    label={openLabel(image.n, columns)}
+                    hotkey={hotkeyOf(image.n)}
+                    plain
+                    dimColor
+                    onPress={() => openFullSize($, image.n, image.path!)}
+                  />
+                )}
               </Box>
             )
           })}

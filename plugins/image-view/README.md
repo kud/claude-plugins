@@ -22,6 +22,25 @@ Off macOS, where there is no `sips`, the tile reads `no preview`.
 - Each tile has a rounded dim border and its `#n` label underneath.
 - Sending the prompt clears the band.
 
+## Full size
+
+Under each tile is `1: full size` (the digit is the image number). To open the picture at full resolution:
+
+- **click** it, or
+- press **ctrl+x tab** to move the focus to the band, then the image's **number** (1 to 9; images from #10 are click-only). Esc returns to the prompt.
+
+Digits are never taken from the prompt while you type, and a press only acts while the draft still holds that image's `[Image #n]` tag. Claude Code's mod API has no free modifier chord (such as ⌥1) to bind, which is why the focus step is there.
+
+What opens:
+
+| Where you run Claude Code                                 | What happens                                                                                                                        |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| iTerm2 (`TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`) | the session is split vertically (the new pane about 40% wide) and runs `imgcat` on the image; press any key there to close the pane |
+| iTerm2 without `imgcat`                                   | the same pane prints iTerm2's inline-image escape (OSC 1337) itself                                                                 |
+| anywhere else, or if the split fails                      | Quick Look (`qlmanage -p`), in the background                                                                                       |
+
+The image is Claude Code's own cached copy of the paste, never the thumbnail. The split is driven by AppleScript through `osascript`, so macOS may ask once to let your terminal control iTerm2. `imgcat` is looked up in iTerm2's app bundle, `~/.iterm2/` (shell integration), then `PATH`.
+
 ## Try it for one session
 
 ```

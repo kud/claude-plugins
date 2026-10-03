@@ -275,7 +275,12 @@ const ok = {
   isStderrTruncated: false,
 }
 
-function imageWorld(on: Parameters<TestBody>[1], dir: string, draft: string) {
+function imageWorld(
+  on: Parameters<TestBody>[1],
+  dir: string,
+  draft: string,
+  alsoExisting: readonly string[] = [],
+) {
   const entry = { size: 0, mtimeMs: 0, isLink: false }
   on("session.start", () => ({ cwd: "/work" }))
   on("prompt.read", () => ({ value: { text: draft, cursor: draft.length } }))
@@ -288,7 +293,10 @@ function imageWorld(on: Parameters<TestBody>[1], dir: string, draft: string) {
     ],
   }))
   on("fs.exists", ($, e) => ({
-    value: e.path === dir || e.path === `${dir}/1.png`,
+    value:
+      e.path === dir ||
+      e.path === `${dir}/1.png` ||
+      alsoExisting.includes(e.path),
   }))
   on("ui.render", () => ({
     type: "Text",
@@ -465,5 +473,112 @@ test("a kitty-protocol terminal keeps the Image element", async ($, on) => {
   expect(await ui.find({ type: "Raster" })).toBeUndefined()
   // #2 has no cached file, so it gets a placeholder tile instead of a broken Image.
   expect(await ui.find({ type: "Text", text: "no preview" })).toBeDefined()
+  await ui.unmount()
+})
+
+const IMGCAT = "/Applications/iTerm.app/Contents/Resources/utilities/imgcat"
+
+async function bandWithOneImage(
+  $: Parameters<TestBody>[0],
+  on: Parameters<TestBody>[1],
+  env: Record<string, string>,
+  answer: (argv: readonly string[]) => number,
+) {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TMPDIR: "/var/folders/xy/T/",
+    HOME: "/Users/someone",
+    ...env,
+  })
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, "see [Image #1]", [IMGCAT])
+  on("fs.read", () => ({ value: { base64: pngHead(800, 400) } }))
+  const runs: string[][] = []
+  const writes: { path: string; text: string }[] = []
+  on("process.run", ($, e) => {
+    runs.push([...e.argv])
+    return { value: { ...ok, exitCode: answer(e.argv) } }
+  })
+  on("fs.write", ($, e) => {
+    writes.push({ path: e.path, text: e.text })
+    return { value: undefined }
+  })
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  return { ui, runs, writes, image: `${dir}/1.png` }
+}
+
+test("each tile's label is a button, hotkeyed by its image number", async ($, on) => {
+  const { ui } = await bandWithOneImage(
+    $,
+    on,
+    { TERM_PROGRAM: "ghostty" },
+    () => 0,
+  )
+  const button = await ui.find({ type: "Button" })
+  expect(button?.props).toMatchObject({
+    key: "open-1",
+    hotkey: "1",
+    label: "full size",
+  })
+  await ui.unmount()
+})
+
+test("in iTerm2, full size splits Claude Code's own session and runs imgcat", async ($, on) => {
+  const { ui, runs, writes, image } = await bandWithOneImage(
+    $,
+    on,
+    { TERM_PROGRAM: "iTerm.app", ITERM_SESSION_ID: "w0t1p0:ABC-123" },
+    () => 0,
+  )
+  await ui.press({ key: "open-1" })
+  const script = "/var/folders/xy/T/image-view/view-1.zsh"
+  expect(writes).toHaveLength(1)
+  expect(writes[0]!.path).toBe(script)
+  expect(writes[0]!.text).toContain(`'${IMGCAT}' '${image}'`)
+  const osascript = runs.find((argv) => argv[0] === "osascript")
+  expect(osascript?.[2]).toContain('if unique id of aSession is "ABC-123"')
+  expect(osascript?.[2]).toContain(
+    `split vertically with default profile command "/bin/zsh -f '${script}'"`,
+  )
+  expect(runs.some((argv) => argv.join(" ").includes("qlmanage"))).toBe(false)
+  await ui.unmount()
+})
+
+test("in iTerm2, a failed split falls back to Quick Look", async ($, on) => {
+  const { ui, runs, image } = await bandWithOneImage(
+    $,
+    on,
+    { LC_TERMINAL: "iTerm2" },
+    (argv) => (argv[0] === "osascript" ? 1 : 0),
+  )
+  await ui.press({ key: "open-1" })
+  expect(runs.at(-1)).toEqual([
+    "/bin/sh",
+    "-c",
+    'qlmanage -p "$1" >/dev/null 2>&1 &',
+    "image-view",
+    image,
+  ])
+  await ui.unmount()
+})
+
+test("outside iTerm2, full size goes straight to Quick Look", async ($, on) => {
+  const { ui, runs, writes } = await bandWithOneImage(
+    $,
+    on,
+    { TERM_PROGRAM: "ghostty" },
+    () => 0,
+  )
+  await ui.press({ key: "open-1" })
+  expect(runs.some((argv) => argv[0] === "osascript")).toBe(false)
+  expect(writes).toHaveLength(0)
+  expect(runs.at(-1)?.[2]).toContain("qlmanage -p")
   await ui.unmount()
 })
