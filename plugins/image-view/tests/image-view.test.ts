@@ -179,6 +179,22 @@ describe("cellsOf", () => {
       0xffffff, 0x01000000, 0x20, 0x01000000, 0x01000000,
     ])
   })
+
+  test("one pixel column is one cell: 1px stripes stay distinct, never paired", () => {
+    const width = 6
+    const rgba = new Uint8Array(width * 2 * 4)
+    for (let x = 0; x < width; x++) {
+      const shade = x % 2 === 0 ? 0 : 255
+      for (const y of [0, 1])
+        rgba.set([shade, shade, shade, 255], (y * width + x) * 4)
+    }
+    const words = wordsOf(cellsOf(rgba, width, 2))
+    expect(words.length).toBe(width * 3)
+    const foregrounds = words.filter((_, i) => i % 3 === 1)
+    expect(foregrounds).toEqual([
+      0x000000, 0xffffff, 0x000000, 0xffffff, 0x000000, 0xffffff,
+    ])
+  })
 })
 
 describe("canDrawImages", () => {
