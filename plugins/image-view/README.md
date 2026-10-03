@@ -46,7 +46,7 @@ Off macOS, where there is no `sips`, the tile reads `no preview`.
 - Tiles are sized from the band: a lone picture can use the full width, up to 20 rows tall, with its aspect ratio kept; the row of tiles always fits the band, shrinking before it would scroll.
 - An `Image` tile is sized for the real shape of a terminal cell, so the picture fills its border with no empty bands. The mod API does not report cell pixels, so it assumes a cell 2.3 times as tall as it is wide (iTerm2, kitty and Ghostty at common fonts). If your font leaves thin bands, set `IMAGE_VIEW_CELL_ASPECT` (1 to 4) to your cell's height over its width: higher removes bands above and below, lower removes them at the sides.
 - Each tile has a rounded grey border, a column of padding, and its `[Image #n]` label in bold, centred directly under the picture.
-- Sending the prompt clears the band.
+- Sending the prompt keeps the band up while Claude works, where the terminal draws real images: the sent message's pictures stay until the reply finishes or new images are pasted. Elsewhere sending clears the band.
 
 ## Try it for one session
 

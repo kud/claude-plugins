@@ -26,6 +26,9 @@ let found: { sessionId: string; dir: string } | undefined
 // The image numbers last drawn, so an unchanged draft doesn't rewrite state; undefined
 // while a drawn image's file is still missing, so the next poll looks again.
 let shownKey: string | undefined
+// The sent message's images, kept above the prompt while Claude works on it (real-image
+// terminals only); dropped when the reply finishes or a new paste takes over.
+let held: PastedImage[] | undefined
 let isChecking = false
 const sizes = new Map<string, Size | null>()
 // Whether the terminal draws `Image` itself; iTerm2 and friends get `Raster` tiles.
@@ -108,6 +111,13 @@ async function show($: EngineInterface, draft: string) {
   const numbers = imageNumbers(draft)
   const key = numbers.join(",")
   if (key === shownKey) return
+  if (numbers.length === 0) {
+    // The draft emptied because the message was sent: the held images stay up while
+    // Claude works, so don't clear. A new paste takes over below.
+    if (held !== undefined) return
+  } else {
+    held = undefined
+  }
   const dir = numbers.length > 0 ? await imagesDir($) : undefined
   const list: PastedImage[] = []
   for (const n of numbers) list.push(await describe($, dir, n))
@@ -262,6 +272,34 @@ export const register: Register = (on) => {
     })
     imageCellAspect = cellAspectOf(cellAspect ?? undefined)
     $.clock.every(POLL_MS, () => check($))
+    return next(e)
+  })
+
+  on("prompt.submit", async ($, e, next) => {
+    try {
+      if (canDraw) {
+        const list = await read($, images)
+        if (list.length > 0) {
+          const sent = new Set(imageNumbers(e.text))
+          const keep = list.filter((image) => sent.has(image.n))
+          if (keep.length > 0) held = keep
+        }
+      }
+    } catch {
+      // Never block the user's submit.
+    }
+    return next(e)
+  })
+
+  on("turn.complete", async ($, e, next) => {
+    try {
+      held = undefined
+      shownKey = undefined
+      await update($, images, () => [])
+    } catch {
+      // The band clears on the next poll; never block the turn.
+    }
+    $.ui.invalidate("ui.render")
     return next(e)
   })
 

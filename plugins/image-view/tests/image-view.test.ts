@@ -339,15 +339,28 @@ const ok = {
   isStderrTruncated: false,
 }
 
+// The harness implements no terminal behind prompt.submit / turn.complete, so firing
+// one always throws "no implementation" after the plugin's hooks have run.
+async function fire(work: Promise<unknown>) {
+  try {
+    await work
+  } catch (err) {
+    expect(String(err)).toContain("no implementation")
+  }
+}
+
 function imageWorld(
   on: Parameters<TestBody>[1],
   dir: string,
-  draft: string,
+  draft: string | (() => string),
   alsoExisting: readonly string[] = [],
 ) {
   const entry = { size: 0, mtimeMs: 0, isLink: false }
   on("session.start", () => ({ cwd: "/work" }))
-  on("prompt.read", () => ({ value: { text: draft, cursor: draft.length } }))
+  on("prompt.read", () => {
+    const text = typeof draft === "function" ? draft() : draft
+    return { value: { text, cursor: text.length } }
+  })
   on("session.id", () => ({ value: "sess-1" }))
   on("fs.list", () => ({
     value: [
@@ -667,5 +680,156 @@ test("a force override in settings since before start draws Image, its alt blank
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({ alt: " " })
   expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  await ui.unmount()
+})
+
+function heldWorld(
+  on: Parameters<TestBody>[1],
+  getDraft: () => string,
+  extraExisting: readonly string[] = [],
+) {
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, getDraft, extraExisting)
+  on("fs.read", () => ({ value: { base64: pngHead(800, 400) } }))
+  on("process.run", () => ({ value: ok }))
+  return dir
+}
+
+test("sent images stay above the prompt while Claude works", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM: "xterm-kitty",
+  })
+  let draft = "see [Image #1]"
+  const dir = heldWorld(on, () => draft)
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  await fire($.prompt.submit({ text: "see [Image #1]" }))
+  draft = ""
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  const image = await ui.find({ type: "Image" })
+  expect(image?.props).toMatchObject({
+    source: { file: `${dir}/1.png`, format: "png" },
+    columns: 78,
+    rows: 17,
+  })
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  await ui.unmount()
+})
+
+test("sent images clear when the reply finishes, and the band re-reads after", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM: "xterm-kitty",
+  })
+  let draft = "see [Image #1]"
+  heldWorld(on, () => draft)
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  await fire($.prompt.submit({ text: "see [Image #1]" }))
+  draft = ""
+  await clock.advance(200)
+  await fire($.turn.complete({ answer: "done" }))
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeUndefined()
+
+  draft = "see [Image #1]"
+  await clock.advance(200)
+  expect(await ui.find({ type: "Image" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  await ui.unmount()
+})
+
+test("a new paste replaces the held images", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM: "xterm-kitty",
+  })
+  let draft = "see [Image #1]"
+  const dir = heldWorld(on, () => draft, [
+    "/tmp/claude-501/-work/sess-1/images/2.png",
+  ])
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  await fire($.prompt.submit({ text: "see [Image #1]" }))
+  draft = ""
+  await clock.advance(200)
+  draft = "see [Image #2]"
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  const image = await ui.find({ type: "Image" })
+  expect(image?.props).toMatchObject({
+    source: { file: `${dir}/2.png`, format: "png" },
+  })
+  expect(await ui.find({ type: "Text", text: "[Image #2]" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("without real images the band clears on send as before", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM_PROGRAM: "iTerm.app",
+  })
+  let draft = "see [Image #1]"
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, () => draft)
+  on("fs.read", () => ({ value: { base64: pngHead(800, 400) } }))
+  on("process.run", () => ({ value: { ...ok, exitCode: 1 } }))
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  let ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  for (
+    let i = 0;
+    i < 20 && !(await ui.find({ type: "Text", text: "no preview" }));
+    i++
+  ) {
+    await clock.settle()
+  }
+  expect(await ui.find({ type: "Text", text: "no preview" })).toBeDefined()
+  await ui.unmount()
+
+  await fire($.prompt.submit({ text: "see [Image #1]" }))
+  draft = ""
+  await clock.advance(200)
+
+  ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Raster" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "no preview" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeUndefined()
   await ui.unmount()
 })
