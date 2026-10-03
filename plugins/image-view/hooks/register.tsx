@@ -280,7 +280,8 @@ export const register: Register = (on) => {
                 flexDirection="column"
                 alignItems="center"
                 borderStyle="round"
-                borderDimColor
+                borderColor="inactive"
+                paddingX={1}
               >
                 {image.path === null ? (
                   <Box
@@ -304,7 +305,9 @@ export const register: Register = (on) => {
                 ) : (
                   rasterFor(image.path, columns, rows, image.n)
                 )}
-                <Text dimColor>#{image.n}</Text>
+                <Text color="text" bold wrap="truncate">
+                  {`[Image #${image.n}]`}
+                </Text>
               </Box>
             )
           })}

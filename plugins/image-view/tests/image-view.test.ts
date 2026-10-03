@@ -270,11 +270,11 @@ describe("layout", () => {
     expect(fitRow([square], 40, 120)).toEqual([{ columns: 40, rows: 20 }])
     // A short band: border and label take 3 rows, so the picture gets the rest.
     expect(fitRow([square], 7, 120)).toEqual([{ columns: 8, rows: 4 }])
-    // A narrow band: three squares need 3 * (2 * rows + 2) + 2 columns; 40 forces 5 rows.
+    // A narrow band: three squares need 3 * (2 * rows + 4) + 2 columns; 40 forces 4 rows.
     expect(fitRow([square, square, square], 20, 40)).toEqual([
-      { columns: 10, rows: 5 },
-      { columns: 10, rows: 5 },
-      { columns: 10, rows: 5 },
+      { columns: 8, rows: 4 },
+      { columns: 8, rows: 4 },
+      { columns: 8, rows: 4 },
     ])
   })
 
@@ -283,9 +283,9 @@ describe("layout", () => {
     expect(fitRow([{ width: 1540, height: 980 }], 40, 120)).toEqual([
       { columns: 63, rows: 20 },
     ])
-    // Wider than the band: the full body width less the border, rows to match.
+    // Wider than the band: the full body width less the border and padding, rows to match.
     expect(fitRow([{ width: 3000, height: 500 }], 40, 120)).toEqual([
-      { columns: 118, rows: 10 },
+      { columns: 116, rows: 10 },
     ])
   })
 })
@@ -572,7 +572,7 @@ test("iTerm2 with the force override draws Image, not Raster", async ($, on) => 
   await ui.unmount()
 })
 
-test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled #n", async ($, on) => {
+test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled [Image #n]", async ($, on) => {
   const clock = mock.clock(on)
   mock.env(on, {
     CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
@@ -595,7 +595,7 @@ test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled #
   const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({ columns: 85, rows: 17 })
-  expect(await ui.find({ type: "Text", text: "#1" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
   expect(await ui.find({ type: "Button" })).toBeUndefined()
   await ui.unmount()
 })

@@ -16,9 +16,9 @@ export const RASTER_CELL_ASPECT = 2
 export const IMAGE_CELL_ASPECT = 2.3
 // Used when the size is unknown (file over $.fs.read's 4 MiB cap, or no file).
 const FALLBACK: Size = { width: 16, height: 10 }
-// Each tile adds a border on every side and a label row under the picture.
+// Each tile adds a border on every side, a column of padding each side, and a label row under the picture.
 const TILE_CHROME_ROWS = 3
-const TILE_CHROME_COLUMNS = 2
+const TILE_CHROME_COLUMNS = 4
 const GAP = 1
 
 /** The distinct image numbers a draft references, in the order they first appear. */
