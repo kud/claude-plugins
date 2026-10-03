@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.7.8"
+    "version": "2.8.0"
   },
   "plugins": [
     {
@@ -127,6 +127,13 @@
       "description": "Manage your YouTube playlists from Claude — search videos, create and edit playlists, and clean up duplicate or deleted-video entries with a dry-run-safe cleanup tool.",
       "source": "./plugins/youtube",
       "category": "entertainment"
+    },
+    {
+      "name": "image-view",
+      "version": "0.1.0",
+      "description": "See the images you paste into Claude Code — thumbnails above the prompt, drawn with half-blocks in iTerm2 and with real pixels in kitty and Ghostty.",
+      "source": "./plugins/image-view",
+      "category": "productivity"
     }
   ]
 }

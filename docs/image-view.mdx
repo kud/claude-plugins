@@ -1,0 +1,38 @@
+---
+title: 🖼️ image-view
+description: See the images you paste into Claude Code — thumbnails above the prompt, drawn with half-blocks in iTerm2 and with real pixels in kitty and Ghostty.
+---
+
+The **image-view** plugin is a
+[mod](https://code.claude.com/docs/en/plugins/mods/overview) (Claude Code
+2.1.287 or later) that draws a thumbnail of every image in your draft in the
+band above the prompt, instead of a bare `[Image #1]` tag.
+
+## 📦 Install
+
+```
+/plugin install image-view@kud --scope user
+```
+
+## 🖼️ How it draws
+
+| Terminal                                 | Element  | What you see                                |
+| ---------------------------------------- | -------- | ------------------------------------------- |
+| kitty (`TERM=xterm-kitty`), Ghostty      | `Image`  | the picture itself                          |
+| everything else (iTerm2, WezTerm, tmux…) | `Raster` | a half-block thumbnail, two pixels per cell |
+
+In the `Raster` case the pasted PNG is scaled with macOS `sips` to the tile's
+exact pixel size and turned into `▀` cells, foreground the top pixel and
+background the bottom one, in truecolour. It all happens locally; decoded tiles
+are cached per image and size. Off macOS the tile reads `no preview`.
+
+- Thumbnails show as soon as you paste, and clear when you send.
+- The aspect ratio is kept and the row always fits the band.
+- Each tile has a rounded dim border and its `#n` label underneath.
+
+## 🙏 Credit
+
+Adapted from
+[jarrodwatts/claude-image-view](https://github.com/jarrodwatts/claude-image-view)
+by Jarrod Watts (MIT). The `Raster` fallback for terminals without kitty
+graphics is new here.

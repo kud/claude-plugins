@@ -1,0 +1,13 @@
+{
+  "name": "image-view",
+  "description": "See the images you paste into Claude Code: thumbnails above the prompt instead of bare [Image #1] tags. Uses kitty graphics where the terminal draws images, and half-block Raster thumbnails everywhere else (including iTerm2).",
+  "version": "0.1.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/claude-plugins",
+  "license": "MIT",
+  "keywords": ["images", "paste", "preview", "thumbnails", "mod", "terminal", "claude-code"],
+  "types": "./types/index.d.ts"
+}
