@@ -18,7 +18,7 @@ Off macOS, where there is no `sips`, the tile reads `no preview`.
 ## Behaviour
 
 - Thumbnails appear as soon as you paste (the draft is polled every 200 ms, since a paste raises no edit event).
-- Aspect ratio is kept; the row of tiles always fits the band, shrinking before it would scroll.
+- Tiles are sized from the band: a lone picture can use the full width, up to 20 rows tall, with its aspect ratio kept; the row of tiles always fits the band, shrinking before it would scroll.
 - Each tile has a rounded dim border and its `#n` label underneath.
 - Sending the prompt clears the band.
 

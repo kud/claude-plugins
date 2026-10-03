@@ -209,34 +209,45 @@ describe("layout", () => {
   })
 
   test("thumbnails keep aspect ratio within the tile", () => {
-    // Square: 6 rows tall, twice as many columns because cells are tall.
+    // Square: 20 rows tall, twice as many columns because cells are tall.
     expect(fitCells({ width: 500, height: 500 })).toEqual({
-      columns: 12,
-      rows: 6,
+      columns: 40,
+      rows: 20,
     })
-    // Very wide: capped at 32 columns, rows shrink to match.
-    expect(fitCells({ width: 3000, height: 500 })).toEqual({
+    // Very wide: capped at the given width, rows shrink to match.
+    expect(fitCells({ width: 3000, height: 500 }, 20, 32)).toEqual({
       columns: 32,
       rows: 3,
     })
     // Very tall: never narrower than 4 columns.
     expect(fitCells({ width: 100, height: 2000 })).toEqual({
       columns: 4,
-      rows: 6,
+      rows: 20,
     })
   })
 
   test("a row of tiles shrinks to fit the band so it never scrolls", () => {
     const square = { width: 500, height: 500 }
-    // Plenty of room: full 6-row tiles.
-    expect(fitRow([square], 20, 120)).toEqual([{ columns: 12, rows: 6 }])
+    // Plenty of room: full 20-row tiles, never taller.
+    expect(fitRow([square], 40, 120)).toEqual([{ columns: 40, rows: 20 }])
     // A short band: border and label take 3 rows, so the picture gets the rest.
     expect(fitRow([square], 7, 120)).toEqual([{ columns: 8, rows: 4 }])
-    // A narrow band: three 6-row squares need 3 * 14 + 2 = 44 columns; 40 forces 5 rows.
+    // A narrow band: three squares need 3 * (2 * rows + 2) + 2 columns; 40 forces 5 rows.
     expect(fitRow([square, square, square], 20, 40)).toEqual([
       { columns: 10, rows: 5 },
       { columns: 10, rows: 5 },
       { columns: 10, rows: 5 },
+    ])
+  })
+
+  test("a lone wide screenshot takes the band's width, not a fixed thumbnail", () => {
+    // 1540 x 980 at 120 columns: 20 rows, 63 columns, so 63 x 40 samples.
+    expect(fitRow([{ width: 1540, height: 980 }], 40, 120)).toEqual([
+      { columns: 63, rows: 20 },
+    ])
+    // Wider than the band: the full body width less the border, rows to match.
+    expect(fitRow([{ width: 3000, height: 500 }], 40, 120)).toEqual([
+      { columns: 118, rows: 10 },
     ])
   })
 })
@@ -337,24 +348,24 @@ test("iTerm band shows a placeholder, then a Raster once sips decodes", async ($
     await clock.settle()
     raster = await ui.find({ type: "Raster" })
   }
-  expect(raster?.props).toMatchObject({ columns: 24, rows: 6 })
-  expect(wordsOf(raster!.props.cells as string).length).toBe(24 * 6 * 3)
+  expect(raster?.props).toMatchObject({ columns: 68, rows: 17 })
+  expect(wordsOf(raster!.props.cells as string).length).toBe(68 * 17 * 3)
 
   const sips = runs.find((argv) => argv[0] === "sips" && argv[1] === "-z")
   expect(sips!.slice(0, 7)).toEqual([
     "sips",
     "-z",
-    "12",
-    "24",
+    "34",
+    "68",
     "-s",
     "format",
     "bmp",
   ])
-  expect(sips!.slice(-2)).toEqual(["--out", `${dir}/.image-view-1-24x6.bmp`])
+  expect(sips!.slice(-2)).toEqual(["--out", `${dir}/.image-view-1-68x17.bmp`])
   expect(
     runs.some(
       (argv) =>
-        argv[0] === "rm" && argv.includes(`${dir}/.image-view-1-24x6.bmp`),
+        argv[0] === "rm" && argv.includes(`${dir}/.image-view-1-68x17.bmp`),
     ),
   ).toBe(true)
   await ui.unmount()
@@ -420,8 +431,8 @@ test("an oversized PNG still gets its aspect from sips", async ($, on) => {
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({
     source: { file: `${dir}/1.png`, format: "png" },
-    columns: 24,
-    rows: 6,
+    columns: 68,
+    rows: 17,
   })
   await ui.unmount()
 })
@@ -448,8 +459,8 @@ test("a kitty-protocol terminal keeps the Image element", async ($, on) => {
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({
     source: { file: `${dir}/1.png`, format: "png" },
-    columns: 24,
-    rows: 6,
+    columns: 64,
+    rows: 16,
   })
   expect(await ui.find({ type: "Raster" })).toBeUndefined()
   // #2 has no cached file, so it gets a placeholder tile instead of a broken Image.

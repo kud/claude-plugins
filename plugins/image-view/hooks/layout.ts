@@ -1,8 +1,10 @@
 export type Size = { width: number; height: number }
 export type Cells = { columns: number; rows: number }
 
-const TILE_ROWS = 6
-const MAX_COLUMNS = 32
+// A picture is never taller than this, so the prompt stays usable below it.
+const TILE_ROWS = 20
+// The widest box `Image` takes (`Raster` takes 512); the band width is the real cap.
+const MAX_COLUMNS = 255
 const MIN_COLUMNS = 4
 // A terminal cell is about twice as tall as it is wide.
 const CELL_ASPECT = 2
@@ -32,28 +34,34 @@ export function pngSize(base64: string): Size | null {
   return width > 0 && height > 0 ? { width, height } : null
 }
 
-/** A picture box `rows` tall that keeps the picture's aspect ratio. */
-export function fitCells(size: Size | null, tileRows = TILE_ROWS): Cells {
+/**
+ * A picture box at most `tileRows` tall and `maxColumns` wide that keeps the
+ * picture's aspect ratio: as tall as allowed, unless that would be too wide.
+ */
+export function fitCells(size: Size | null, tileRows = TILE_ROWS, maxColumns = MAX_COLUMNS): Cells {
   const { width, height } = size ?? FALLBACK
+  const widest = Math.max(MIN_COLUMNS, Math.min(MAX_COLUMNS, maxColumns))
   let rows = tileRows
   let columns = Math.round((rows * CELL_ASPECT * width) / height)
-  if (columns > MAX_COLUMNS) {
-    columns = MAX_COLUMNS
-    rows = Math.max(1, Math.round((MAX_COLUMNS * height) / (CELL_ASPECT * width)))
+  if (columns > widest) {
+    columns = widest
+    rows = Math.max(1, Math.round((widest * height) / (CELL_ASPECT * width)))
   }
   return { columns: Math.max(MIN_COLUMNS, columns), rows: Math.min(rows, tileRows) }
 }
 
 /**
  * Picture boxes for one row of tiles that fits the band whole, so it never scrolls:
- * the tallest tiles whose chrome fits in `maxRows` and whose total width fits in `bodyColumns`.
+ * the tallest tiles (up to TILE_ROWS) whose chrome fits in `maxRows` and whose
+ * total width fits in `bodyColumns`. A lone picture may take the band's full width.
  */
 export function fitRow(sizes: readonly (Size | null)[], maxRows: number, bodyColumns: number): Cells[] {
   const tallest = Math.max(1, Math.min(TILE_ROWS, maxRows - TILE_CHROME_ROWS))
+  const widest = bodyColumns - TILE_CHROME_COLUMNS
   for (let tileRows = tallest; tileRows > 1; tileRows--) {
-    const cells = sizes.map(size => fitCells(size, tileRows))
+    const cells = sizes.map(size => fitCells(size, tileRows, widest))
     const width = cells.reduce((sum, c) => sum + c.columns + TILE_CHROME_COLUMNS, 0) + GAP * (cells.length - 1)
     if (width <= bodyColumns) return cells
   }
-  return sizes.map(size => fitCells(size, 1))
+  return sizes.map(size => fitCells(size, 1, widest))
 }
