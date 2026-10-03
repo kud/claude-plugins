@@ -1,7 +1,7 @@
 {
   "name": "image-view",
   "description": "See the images you paste into Claude Code: thumbnails above the prompt, drawn with real pixels in kitty and Ghostty (and iTerm2 with CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1), and as half-block thumbnails everywhere else.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": {
     "name": "kud",
     "url": "https://github.com/kud"
