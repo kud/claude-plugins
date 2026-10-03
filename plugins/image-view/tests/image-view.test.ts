@@ -14,6 +14,7 @@ import {
   cellsOf,
   fromBase64,
   parseBmp,
+  elapsedSecondsOf,
   toBase64,
 } from "../hooks/raster"
 
@@ -597,5 +598,74 @@ test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled [
   expect(image?.props).toMatchObject({ columns: 85, rows: 17 })
   expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
   expect(await ui.find({ type: "Button" })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("ps elapsed time reads as seconds", () => {
+  expect(elapsedSecondsOf(" 05:07\n")).toBe(307)
+  expect(elapsedSecondsOf("02:05:07")).toBe(7507)
+  expect(elapsedSecondsOf("1-02:05:07")).toBe(93907)
+  expect(elapsedSecondsOf("")).toBeUndefined()
+})
+
+// The process started 300 s before NOW; the user settings hold the force override.
+const NOW = 1_000_000_000
+function forcedFromSettings(
+  on: Parameters<TestBody>[1],
+  settingsMtimeMs: number,
+) {
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    HOME: "/Users/me",
+    TERM_PROGRAM: "iTerm.app",
+    CLAUDE_CODE_FORCE_TERMINAL_IMAGES: "1",
+  })
+  on("settings.read", ($, e) => ({
+    value:
+      e.source === "user"
+        ? { env: { CLAUDE_CODE_FORCE_TERMINAL_IMAGES: "1" } }
+        : {},
+  }))
+  on("fs.stat", ($, e) =>
+    e.path === "/Users/me/.claude/settings.json"
+      ? { value: { kind: "file", size: 2, mtimeMs: settingsMtimeMs, isLink: false } }
+      : { deny: "ENOENT" },
+  )
+  on("fs.read", () => ({ value: { base64: pngHead(800, 400) } }))
+  on("process.run", ($, e) =>
+    e.argv[0] === "sh"
+      ? { value: { ...ok, stdout: "05:00\n" } }
+      : { value: { ...ok, exitCode: 1 } },
+  )
+}
+
+test("a force override set in settings after Claude Code started falls back to Raster", async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  forcedFromSettings(on, NOW - 60_000)
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, "see [Image #1]")
+
+  await $.session.start({ surface: "terminal", isInteractive: true, cwd: "/work" })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  await ui.unmount()
+})
+
+test("a force override in settings since before start draws Image, its alt blank so the label shows once", async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  forcedFromSettings(on, NOW - 3_600_000)
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, "see [Image #1]")
+
+  await $.session.start({ surface: "terminal", isInteractive: true, cwd: "/work" })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  const image = await ui.find({ type: "Image" })
+  expect(image?.props).toMatchObject({ alt: " " })
+  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
   await ui.unmount()
 })

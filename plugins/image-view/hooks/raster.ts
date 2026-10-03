@@ -190,3 +190,14 @@ export function canDrawImages(env: {
     env.TERM_PROGRAM === "ghostty"
   )
 }
+
+/** Seconds a process has run, from `ps -o etime=` (`[[dd-]hh:]mm:ss`); undefined when unreadable. */
+export function elapsedSecondsOf(etime: string): number | undefined {
+  const match = /^(?:(?:(\d+)-)?(\d+):)?(\d+):(\d+)$/.exec(etime.trim())
+  if (match === null) return undefined
+  const [, days = "0", hours = "0", minutes, seconds] = match
+  return (
+    ((Number(days) * 24 + Number(hours)) * 60 + Number(minutes)) * 60 +
+    Number(seconds)
+  )
+}

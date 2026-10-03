@@ -4,7 +4,13 @@ import type { EngineInterface, Register } from "claude-code"
 import type { PastedImage } from "../types"
 import { cellAspectOf, fitRow, imageNumbers, pngSize } from "./layout"
 import type { Size } from "./layout"
-import { canDrawImages, cellsOf, fromBase64, parseBmp } from "./raster"
+import {
+  canDrawImages,
+  cellsOf,
+  elapsedSecondsOf,
+  fromBase64,
+  parseBmp,
+} from "./raster"
 
 // Pasting an image raises no prompt.edit (the tag only shows up on the next keystroke),
 // so the draft is polled instead.
@@ -192,6 +198,51 @@ async function decode(
   }
 }
 
+// Claude Code decides whether the terminal draws pictures once, as it starts. A force
+// override written to a settings file after that reaches `$.env` on the next reload but
+// not Claude Code, whose `Image` then shows only its alt; such an override is ignored.
+async function isForceAddedAfterStart(
+  $: EngineInterface,
+  cwd: string,
+): Promise<boolean> {
+  try {
+    const configDir =
+      (await $.env.get("CLAUDE_CONFIG_DIR")) ??
+      `${await $.env.get("HOME")}/.claude`
+    const files = {
+      user: `${configDir}/settings.json`,
+      project: `${cwd}/.claude/settings.json`,
+      local: `${cwd}/.claude/settings.local.json`,
+    } as const
+    const holders: string[] = []
+    for (const source of ["user", "project", "local"] as const) {
+      const { env } = await $.settings.read({ source })
+      if (
+        typeof env === "object" &&
+        env !== null &&
+        "CLAUDE_CODE_FORCE_TERMINAL_IMAGES" in env
+      )
+        holders.push(files[source])
+    }
+    if (holders.length === 0) return false
+    const { exitCode, stdout } = await $.process.run([
+      "sh",
+      "-c",
+      "ps -o etime= -p $PPID",
+    ])
+    const elapsed = exitCode === 0 ? elapsedSecondsOf(stdout) : undefined
+    if (elapsed === undefined) return false
+    const startedAt = (await $.clock.now()) - (elapsed + 1) * 1000
+    for (const path of holders) {
+      const stat = await $.fs.stat(path).catch(() => undefined)
+      if (stat !== undefined && stat.mtimeMs > startedAt) return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 export const register: Register = (on) => {
   on("session.start", async ($, e, next) => {
     const [term, termProgram, forceImages, cellAspect] = await Promise.all([
@@ -200,10 +251,14 @@ export const register: Register = (on) => {
       $.env.get("CLAUDE_CODE_FORCE_TERMINAL_IMAGES"),
       $.env.get("IMAGE_VIEW_CELL_ASPECT"),
     ])
+    const isForceUnseen =
+      forceImages !== undefined && (await isForceAddedAfterStart($, e.cwd))
     canDraw = canDrawImages({
       TERM: term ?? undefined,
       TERM_PROGRAM: termProgram ?? undefined,
-      CLAUDE_CODE_FORCE_TERMINAL_IMAGES: forceImages ?? undefined,
+      CLAUDE_CODE_FORCE_TERMINAL_IMAGES: isForceUnseen
+        ? undefined
+        : (forceImages ?? undefined),
     })
     imageCellAspect = cellAspectOf(cellAspect ?? undefined)
     $.clock.every(POLL_MS, () => check($))
@@ -300,7 +355,7 @@ export const register: Register = (on) => {
                     source={{ file: image.path, format: "png" }}
                     columns={columns}
                     rows={rows}
-                    alt={`[Image #${image.n}]`}
+                    alt=" "
                   />
                 ) : (
                   rasterFor(image.path, columns, rows, image.n)
