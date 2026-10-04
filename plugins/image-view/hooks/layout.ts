@@ -28,6 +28,99 @@ export function imageNumbers(draft: string): number[] {
   return [...seen]
 }
 
+/**
+ * The original paths a paste recorded as `[Image: source: /path/to/file.png]`,
+ * in the order they appear. The i-th record belongs to the i-th pasted image.
+ */
+export function imageSourcesOf(text: string): string[] {
+  const found: string[] = []
+  for (const match of text.matchAll(/\[Image:\s*source:\s*([^\]]+)\]/g)) {
+    const path = match[1].trim()
+    if (path !== "") found.push(path)
+  }
+  return found
+}
+
+/** The file name of a recorded source path. */
+export function baseNameOf(path: string): string {
+  const trimmed = path.endsWith("/") ? path.slice(0, -1) : path
+  const slash = trimmed.lastIndexOf("/")
+  return slash < 0 ? trimmed : trimmed.slice(slash + 1)
+}
+
+const WIDE = /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe10-\ufe19\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/
+
+/** Display width in terminal cells: wide characters and emoji (among them 📸) count 2. */
+export function cellWidthOf(text: string): number {
+  let width = 0
+  for (const char of text) {
+    const code = char.codePointAt(0) ?? 0
+    width += code > 0xffff || WIDE.test(char) ? 2 : 1
+  }
+  return width
+}
+
+function takeWidth(text: string, budget: number): string {
+  let width = 0
+  let out = ""
+  for (const char of text) {
+    const next = width + cellWidthOf(char)
+    if (next > budget) break
+    out += char
+    width = next
+  }
+  return out
+}
+
+function takeWidthEnd(text: string, budget: number): string {
+  let width = 0
+  let out = ""
+  for (const char of [...text].reverse()) {
+    const next = width + cellWidthOf(char)
+    if (next > budget) break
+    out = char + out
+    width = next
+  }
+  return out
+}
+
+const ELLIPSIS = "…"
+
+/** Shorten `name` to `budget` cells, keeping the extension and cutting the stem's middle. */
+export function truncateName(name: string, budget: number): string {
+  if (budget <= 0) return ""
+  if (cellWidthOf(name) <= budget) return name
+  const dot = name.lastIndexOf(".")
+  const stem = dot > 0 && dot < name.length - 1 ? name.slice(0, dot) : name
+  const ext = stem === name ? "" : name.slice(dot)
+  const keep = budget - cellWidthOf(ext) - cellWidthOf(ELLIPSIS)
+  if (keep < 2) {
+    const cut = takeWidth(name, budget - cellWidthOf(ELLIPSIS))
+    return cut + (cellWidthOf(cut) < budget ? ELLIPSIS : "")
+  }
+  const endKeep = Math.floor(keep / 2)
+  return takeWidth(stem, keep - endKeep) + ELLIPSIS + takeWidthEnd(stem, endKeep) + ext
+}
+
+const LABEL_SUFFIX = " 📸"
+
+/**
+ * The caption under a tile: the source file's name when the paste recorded one,
+ * else `[Image #n]`. Truncated to `innerWidth` cells (the tile's picture width
+ * plus its padding), extension kept.
+ */
+export function imageLabel(
+  image: { n: number; source?: string | null },
+  innerWidth: number,
+): string {
+  if (innerWidth < cellWidthOf(LABEL_SUFFIX) + 1) return "📸"
+  const name =
+    image.source !== undefined && image.source !== null && image.source !== ""
+      ? baseNameOf(image.source)
+      : `[Image #${image.n}]`
+  return truncateName(name, innerWidth - cellWidthOf(LABEL_SUFFIX)) + LABEL_SUFFIX
+}
+
 /** Width and height from a PNG's IHDR chunk, or null when the bytes aren't a PNG. */
 export function pngSize(base64: string): Size | null {
   // 24 bytes cover the signature and IHDR's width and height; 32 base64 chars decode to exactly 24.

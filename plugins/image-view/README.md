@@ -1,6 +1,6 @@
 # image-view
 
-A Claude Code [mod](https://code.claude.com/docs/en/plugins/mods/overview) that shows thumbnails of the images you paste, in the band above the prompt, instead of bare `[Image #1]` tags.
+A Claude Code [mod](https://code.claude.com/docs/en/plugins/mods/overview) that shows thumbnails of the images you paste: in the band above the prompt while you write, and in the conversation history once you send, instead of bare `[Image #1]` tags.
 
 It draws real pixels in terminals that speak the kitty graphics protocol, and falls back to half-block thumbnails in any other truecolour terminal.
 
@@ -43,10 +43,11 @@ Off macOS, where there is no `sips`, the tile reads `no preview`.
 ## Behaviour
 
 - Thumbnails appear as soon as you paste (the draft is polled every 200 ms, since a paste raises no edit event).
-- Tiles are sized from the band: a lone picture can use the full width, up to 20 rows tall, with its aspect ratio kept; the row of tiles always fits the band, shrinking before it would scroll.
+- Sent messages keep their thumbnails in the conversation history: each `[Image #n]` tag resolves to the session's cached paste and draws the same tile as the band. Collapsed rows stay a single line of tags, rows from other origins are left alone, and rows outside the viewport keep the terminal's own rendering, so long transcripts stay cheap. If a thumbnail cannot be drawn, the message text is left untouched.
+- Tiles are sized from the band: a lone picture can use the full width, up to 20 rows tall, with its aspect ratio kept; the row of tiles always fits the band, shrinking before it would scroll. History tiles are smaller, capped so one message never pushes the transcript far.
 - An `Image` tile is sized for the real shape of a terminal cell, so the picture fills its border with no empty bands. The mod API does not report cell pixels, so it assumes a cell 2.3 times as tall as it is wide (iTerm2, kitty and Ghostty at common fonts). If your font leaves thin bands, set `IMAGE_VIEW_CELL_ASPECT` (1 to 4) to your cell's height over its width: higher removes bands above and below, lower removes them at the sides.
-- Each tile has a rounded grey border, a column of padding, and its `[Image #n]` label in bold, centred directly under the picture.
-- Sending the prompt keeps the band up while Claude works, where the terminal draws real images: the sent message's pictures stay until the reply finishes or new images are pasted. Elsewhere sending clears the band.
+- Each tile has a rounded grey border, a column of padding, and its file name in bold, centred directly under the picture, e.g. `CleanShot 2026-10-05 at 00.16.14@2x.png 📸`. Names too wide for the tile shorten in the middle and keep their extension; a paste with no recorded file name is labelled `[Image #n] 📸`.
+- Sending the prompt clears the band; the sent images show in the history.
 
 ## Try it for one session
 

@@ -3,10 +3,15 @@ import type { FoundElement, TestBody } from "claude-code/testing"
 
 import {
   IMAGE_CELL_ASPECT,
+  baseNameOf,
   cellAspectOf,
+  cellWidthOf,
   fitCells,
   fitRow,
+  imageLabel,
   imageNumbers,
+  imageSourcesOf,
+  truncateName,
   pngSize,
 } from "../hooks/layout"
 import {
@@ -375,11 +380,14 @@ function imageWorld(
       e.path === `${dir}/1.png` ||
       alsoExisting.includes(e.path),
   }))
-  on("ui.render", () => ({
-    type: "Text",
-    props: {},
-    children: ["engine band"],
-  }))
+  on("ui.render", ($, e) => {
+    const text = (e as unknown as { props?: { text?: unknown } }).props?.text
+    return {
+      type: "Text",
+      props: {},
+      children: [typeof text === "string" ? text : "engine band"],
+    }
+  })
 }
 
 test("iTerm band shows a placeholder, then a Raster once sips decodes", async ($, on) => {
@@ -586,7 +594,7 @@ test("iTerm2 with the force override draws Image, not Raster", async ($, on) => 
   await ui.unmount()
 })
 
-test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled [Image #n]", async ($, on) => {
+test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled [Image #n] 📸", async ($, on) => {
   const clock = mock.clock(on)
   mock.env(on, {
     CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
@@ -609,7 +617,7 @@ test("IMAGE_VIEW_CELL_ASPECT reshapes the Image box, and each tile is labelled [
   const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({ columns: 85, rows: 17 })
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeDefined()
   expect(await ui.find({ type: "Button" })).toBeUndefined()
   await ui.unmount()
 })
@@ -663,7 +671,7 @@ test("a force override set in settings after Claude Code started falls back to R
 
   const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
   expect(await ui.find({ type: "Image" })).toBeUndefined()
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeDefined()
   await ui.unmount()
 })
 
@@ -679,11 +687,11 @@ test("a force override in settings since before start draws Image, its alt blank
   const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
   const image = await ui.find({ type: "Image" })
   expect(image?.props).toMatchObject({ alt: " " })
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeDefined()
   await ui.unmount()
 })
 
-function heldWorld(
+function draftWorld(
   on: Parameters<TestBody>[1],
   getDraft: () => string,
   extraExisting: readonly string[] = [],
@@ -695,14 +703,14 @@ function heldWorld(
   return dir
 }
 
-test("sent images stay above the prompt while Claude works", async ($, on) => {
+test("sending clears the band on the next poll, with no turn.complete", async ($, on) => {
   const clock = mock.clock(on)
   mock.env(on, {
     CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
     TERM: "xterm-kitty",
   })
   let draft = "see [Image #1]"
-  const dir = heldWorld(on, () => draft)
+  draftWorld(on, () => draft)
 
   await $.session.start({
     surface: "terminal",
@@ -711,62 +719,71 @@ test("sent images stay above the prompt while Claude works", async ($, on) => {
   })
   await clock.advance(200)
 
-  await fire($.prompt.submit({ text: "see [Image #1]" }))
-  draft = ""
-  await clock.advance(200)
-
-  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
-  const image = await ui.find({ type: "Image" })
-  expect(image?.props).toMatchObject({
-    source: { file: `${dir}/1.png`, format: "png" },
-    columns: 78,
-    rows: 17,
-  })
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  let ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeDefined()
   await ui.unmount()
-})
-
-test("sent images clear when the reply finishes, and the band re-reads after", async ($, on) => {
-  const clock = mock.clock(on)
-  mock.env(on, {
-    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
-    TERM: "xterm-kitty",
-  })
-  let draft = "see [Image #1]"
-  heldWorld(on, () => draft)
-
-  await $.session.start({
-    surface: "terminal",
-    isInteractive: true,
-    cwd: "/work",
-  })
-  await clock.advance(200)
 
   await fire($.prompt.submit({ text: "see [Image #1]" }))
   draft = ""
   await clock.advance(200)
+
+  // No turn.complete fires (interrupt, error, reload): the empty draft clears anyway.
+  ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeUndefined()
+  await ui.unmount()
+
+  // A late turn.complete is harmless belt and braces.
   await fire($.turn.complete({ answer: "done" }))
   await clock.advance(200)
 
-  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  ui = await $.ui.mount({ ...BAND, surface: "terminal" })
   expect(await ui.find({ type: "Image" })).toBeUndefined()
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeUndefined()
-
-  draft = "see [Image #1]"
-  await clock.advance(200)
-  expect(await ui.find({ type: "Image" })).toBeDefined()
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeUndefined()
   await ui.unmount()
 })
 
-test("a new paste replaces the held images", async ($, on) => {
+test("the band re-reads after it clears on send", async ($, on) => {
   const clock = mock.clock(on)
   mock.env(on, {
     CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
     TERM: "xterm-kitty",
   })
   let draft = "see [Image #1]"
-  const dir = heldWorld(on, () => draft, [
+  draftWorld(on, () => draft)
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  await fire($.prompt.submit({ text: "see [Image #1]" }))
+  draft = ""
+  await clock.advance(200)
+
+  let ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeUndefined()
+  await ui.unmount()
+
+  draft = "see [Image #1]"
+  await clock.advance(200)
+  ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeDefined()
+  await ui.unmount()
+})
+
+test("a new paste after a submit shows only the new images", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM: "xterm-kitty",
+  })
+  let draft = "see [Image #1]"
+  const dir = draftWorld(on, () => draft, [
     "/tmp/claude-501/-work/sess-1/images/2.png",
   ])
 
@@ -788,8 +805,39 @@ test("a new paste replaces the held images", async ($, on) => {
   expect(image?.props).toMatchObject({
     source: { file: `${dir}/2.png`, format: "png" },
   })
-  expect(await ui.find({ type: "Text", text: "[Image #2]" })).toBeDefined()
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #2] 📸" })).toBeDefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("an emptied draft clears leftover band state, with no events at all", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM: "xterm-kitty",
+  })
+  // The band holds images (a reload kept the state, say) while the draft is
+  // already empty: no submit, no turn, just the next poll.
+  let draft = "see [Image #1]"
+  draftWorld(on, () => draft)
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  let ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeDefined()
+  await ui.unmount()
+
+  draft = ""
+  await clock.advance(200)
+
+  ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -830,6 +878,369 @@ test("without real images the band clears on send as before", async ($, on) => {
   ui = await $.ui.mount({ ...BAND, surface: "terminal" })
   expect(await ui.find({ type: "Raster" })).toBeUndefined()
   expect(await ui.find({ type: "Text", text: "no preview" })).toBeUndefined()
-  expect(await ui.find({ type: "Text", text: "[Image #1]" })).toBeUndefined()
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeUndefined()
+  await ui.unmount()
+})
+
+describe("labels", () => {
+  test("cell width counts emoji and wide characters as two", () => {
+    expect(cellWidthOf("abc")).toBe(3)
+    expect(cellWidthOf("📸")).toBe(2)
+    expect(cellWidthOf("a📸b")).toBe(4)
+    expect(cellWidthOf("日本語")).toBe(6)
+  })
+
+  test("source records come out in order, blanks ignored", () => {
+    expect(
+      imageSourcesOf(
+        "see [Image #1] [Image: source: /Users/me/a.png] and [Image #2] [Image: source: /tmp/b image.png]",
+      ),
+    ).toEqual(["/Users/me/a.png", "/tmp/b image.png"])
+    expect(imageSourcesOf("see [Image #1]")).toEqual([])
+    expect(imageSourcesOf("[Image: source:   ]")).toEqual([])
+  })
+
+  test("the file name is the last path segment", () => {
+    expect(baseNameOf("/Users/me/Pictures/shot.png")).toBe("shot.png")
+    expect(baseNameOf("shot.png")).toBe("shot.png")
+    expect(baseNameOf("/Users/me/Pictures/")).toBe("Pictures")
+  })
+
+  test("the file name labels the tile, else [Image #n]", () => {
+    expect(imageLabel({ n: 1, source: "/Users/me/Pictures/shot.png" }, 20)).toBe(
+      "shot.png 📸",
+    )
+    expect(imageLabel({ n: 2, source: null }, 20)).toBe("[Image #2] 📸")
+    expect(imageLabel({ n: 3 }, 20)).toBe("[Image #3] 📸")
+  })
+
+  test("long names truncate mid-stem and keep the extension", () => {
+    expect(truncateName("short.png", 20)).toBe("short.png")
+    expect(truncateName(`${"a".repeat(50)}.png`, 10)).toBe("aaa…aa.png")
+    expect(
+      imageLabel({ n: 1, source: `/Users/me/${"a".repeat(100)}.png` }, 20),
+    ).toBe("aaaaaa…aaaaaa.png 📸")
+  })
+
+  test("the 📸 suffix counts two cells against the tile width", () => {
+    expect(imageLabel({ n: 1, source: "/x/shot.png" }, 12)).toBe("shot.png 📸")
+    expect(imageLabel({ n: 1, source: "/x/shot.png" }, 11)).toBe("shot.png 📸")
+    expect(imageLabel({ n: 1, source: "/x/shot.png" }, 10)).toBe("s…t.png 📸")
+  })
+})
+
+const MESSAGE = (text: string, extraProps: Record<string, unknown> = {}) => ({
+  plugin: "image-view",
+  component: "UserMessage",
+  requestId: "user-message",
+  viewport: { columns: 120, rows: 40 },
+  props: {
+    text,
+    origin: { kind: "composer" },
+    isExpanded: true,
+    onScreen: { first: 0, last: 10, of: 11 },
+    ...extraProps,
+  },
+})
+
+function transcriptWorld(
+  on: Parameters<TestBody>[1],
+  env: Record<string, string>,
+  draft = "",
+) {
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    ...env,
+  })
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, draft)
+  on("fs.read", () => ({ value: { base64: pngHead(800, 400) } }))
+  on("process.run", () => ({ value: ok }))
+  return dir
+}
+
+test("band tiles are labelled with the recorded file name", async ($, on) => {
+  const clock = mock.clock(on)
+  const draft =
+    "see [Image #1] [Image: source: /Users/me/Pictures/CleanShot 2026-10-05 at 00.16.14@2x.png]"
+  transcriptWorld(on, { TERM_PROGRAM: "ghostty" }, draft)
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({ ...BAND, surface: "terminal" })
+  expect(
+    await ui.find({
+      type: "Text",
+      text: "CleanShot 2026-10-05 at 00.16.14@2x.png 📸",
+    }),
+  ).toBeDefined()
+  await ui.unmount()
+})
+
+test("transcript rows draw thumbnails for the session's pasted images", async ($, on) => {
+  const clock = mock.clock(on)
+  const dir = transcriptWorld(on, { TERM_PROGRAM: "ghostty" })
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({
+    ...MESSAGE(
+      "see [Image #1] [Image: source: /Users/me/Pictures/CleanShot 2026-10-05 at 00.16.14@2x.png]",
+    ),
+    surface: "terminal",
+  })
+  const image = await ui.find({ type: "Image" })
+  expect(image?.props).toMatchObject({
+    source: { file: `${dir}/1.png`, format: "png" },
+    columns: 41,
+    rows: 9,
+  })
+  expect(
+    await ui.find({
+      type: "Text",
+      text: "CleanShot 2026-10-05 at 00.16.14@2x.png 📸",
+    }),
+  ).toBeDefined()
+  expect(
+    await ui.find({
+      type: "Text",
+      text: "see [Image #1] [Image: source: /Users/me/Pictures/CleanShot 2026-10-05 at 00.16.14@2x.png]",
+    }),
+  ).toBeDefined()
+  await ui.unmount()
+})
+
+test("transcript rows without the session's images keep the engine's rendering", async ($, on) => {
+  const clock = mock.clock(on)
+  transcriptWorld(on, { TERM_PROGRAM: "ghostty" })
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  for (const text of ["just words, no images", "see [Image #9]"]) {
+    const ui = await $.ui.mount({ ...MESSAGE(text), surface: "terminal" })
+    expect(await ui.find({ type: "Text", text })).toBeDefined()
+    expect(await ui.find({ type: "Image" })).toBeUndefined()
+    expect(await ui.find({ type: "Raster" })).toBeUndefined()
+    await ui.unmount()
+  }
+})
+
+test("collapsed transcript rows stay compact", async ($, on) => {
+  const clock = mock.clock(on)
+  transcriptWorld(on, { TERM_PROGRAM: "ghostty" })
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({
+    ...MESSAGE("see [Image #1]", { isExpanded: false }),
+    surface: "terminal",
+  })
+  expect(await ui.find({ type: "Text", text: "see [Image #1]" })).toBeDefined()
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Raster" })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("off-viewport transcript rows keep the engine's rendering", async ($, on) => {
+  const clock = mock.clock(on)
+  transcriptWorld(on, { TERM_PROGRAM: "ghostty" })
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  // `onScreen` null draws outside the viewport: the row passes through.
+  const ui = await $.ui.mount({
+    ...MESSAGE("see [Image #1]", { onScreen: null }),
+    surface: "terminal",
+  })
+  expect(await ui.find({ type: "Text", text: "see [Image #1]" })).toBeDefined()
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Raster" })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("transcript rows draw where the surface says nothing about the viewport", async ($, on) => {
+  const clock = mock.clock(on)
+  const dir = transcriptWorld(on, { TERM_PROGRAM: "ghostty" })
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  // No `onScreen` at all: the row draws.
+  const mounted = {
+    plugin: "image-view",
+    component: "UserMessage",
+    requestId: "user-message",
+    viewport: { columns: 120, rows: 40 },
+    props: {
+      text: "see [Image #1]",
+      origin: { kind: "composer" },
+      isExpanded: true,
+    },
+  }
+  const ui = await $.ui.mount({ ...mounted, surface: "terminal" })
+  const image = await ui.find({ type: "Image" })
+  expect(image?.props).toMatchObject({
+    source: { file: `${dir}/1.png`, format: "png" },
+  })
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeDefined()
+  await ui.unmount()
+})
+
+test("transcript rows from other origins keep the engine's rendering", async ($, on) => {
+  const clock = mock.clock(on)
+  transcriptWorld(on, { TERM_PROGRAM: "ghostty" })
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({
+    ...MESSAGE("see [Image #1]", { origin: { kind: "system" } }),
+    surface: "terminal",
+  })
+  expect(await ui.find({ type: "Text", text: "see [Image #1]" })).toBeDefined()
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Raster" })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("a transcript failure keeps the message text", async ($, on) => {
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM_PROGRAM: "ghostty",
+  })
+  const entry = { size: 0, mtimeMs: 0, isLink: false }
+  on("session.start", () => ({ cwd: "/work" }))
+  on("session.id", () => ({ value: "sess-1" }))
+  on("fs.list", () => ({
+    value: [{ name: "-work", kind: "dir", ...entry }],
+  }))
+  on("fs.exists", () => {
+    throw new Error("disk gone")
+  })
+  on("ui.render", () => ({
+    type: "Text",
+    props: {},
+    children: ["engine message"],
+  }))
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+
+  const ui = await $.ui.mount({
+    ...MESSAGE("see [Image #1]"),
+    surface: "terminal",
+  })
+  expect(await ui.find({ type: "Text", text: "engine message" })).toBeDefined()
+  expect(await ui.find({ type: "Image" })).toBeUndefined()
+  expect(await ui.find({ type: "Raster" })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("transcript rows fall back to Raster where the terminal draws no pictures", async ($, on) => {
+  const clock = mock.clock(on)
+  mock.env(on, {
+    CLAUDE_CODE_TMPDIR: "/tmp/claude-501",
+    TERM_PROGRAM: "iTerm.app",
+  })
+  const dir = "/tmp/claude-501/-work/sess-1/images"
+  imageWorld(on, dir, "")
+  on("fs.read", ($, e) => {
+    if (e.path.endsWith(".bmp")) {
+      const match = /\.image-view-(\d+)-(\d+)x(\d+)\.bmp$/.exec(e.path)
+      const columns = Number(match![2])
+      const rows = Number(match![3])
+      return {
+        value: {
+          base64: bmp32TopDown(columns, rows * 2, () => [200, 100, 50, 255]),
+        },
+      }
+    }
+    return { value: { base64: pngHead(800, 400) } }
+  })
+  on("process.run", () => ({ value: ok }))
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({
+    ...MESSAGE("see [Image #1]"),
+    surface: "terminal",
+  })
+  let raster: FoundElement | undefined
+  for (let i = 0; i < 20 && !raster; i++) {
+    await clock.settle()
+    raster = await ui.find({ type: "Raster" })
+  }
+  expect(raster?.props).toMatchObject({ columns: 36, rows: 9 })
+  expect(await ui.find({ type: "Text", text: "[Image #1] 📸" })).toBeDefined()
+  await ui.unmount()
+})
+
+test("a long recorded file name truncates but keeps its extension", async ($, on) => {
+  const clock = mock.clock(on)
+  transcriptWorld(on, { TERM_PROGRAM: "ghostty" })
+  const name =
+    "site walkthrough 2026-10-05 with the whole team on the call" +
+    " and more".repeat(10) +
+    ".png"
+
+  await $.session.start({
+    surface: "terminal",
+    isInteractive: true,
+    cwd: "/work",
+  })
+  await clock.advance(200)
+
+  const ui = await $.ui.mount({
+    ...MESSAGE(`see [Image #1] [Image: source: /Users/me/Pictures/${name}]`),
+    surface: "terminal",
+  })
+  expect(await ui.find({ type: "Image" })).toBeDefined()
+  expect(
+    await ui.find({
+      type: "Text",
+      text: "site walkthrough 2…and more and more.png 📸",
+    }),
+  ).toBeDefined()
   await ui.unmount()
 })
