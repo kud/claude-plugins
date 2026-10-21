@@ -60,13 +60,13 @@ Call `list_sessions({directory?})` on the `opencode` MCP server. opencode v2 run
 
 ## Step 6 — Send the message
 
-Call `send({session_id, prompt, agent, timeout_seconds?, port?})`.
+Call `send({session_id, prompt, agent?, timeout_seconds?, port?})`.
 
-Default `agent` to `"plan"` — the default `build` agent can edit files on disk, so only pass a different agent when the user names one explicitly.
+Omit `agent` unless the user explicitly asks for one: the session keeps its own agent.
 
 By default `send` routes to the server that owns the session — only pass `port` when the user names a specific server.
 
-A passed `agent` or `model` switches the session for its later turns too, because opencode v2 has no per-message agent or model. Say so in the reply, naming the agent, so the user can switch back.
+A passed `agent` or `model` persists on the session for its later turns too, because opencode v2 has no per-message agent or model. When the user asked for one, say so in the reply so they can switch back.
 
 The message appears live in the user's opencode, same as if they'd typed it — never invent or discard a session.
 
