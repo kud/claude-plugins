@@ -1,6 +1,6 @@
 ---
 name: ask-opencode
-description: "Query an opencode model for a one-off second opinion (default), or talk to a session already running in the user's opencode TUI. Session mode triggers on `--session [id]` or phrasing like 'talk to my opencode', 'ask the opencode I have open', 'tell opencode …'. Either way the reply is shown inline, clearly attributed to opencode."
+description: "Query an opencode model for a one-off second opinion (default), or talk to a session on the user's running opencode (the shared background service or any server). Session mode triggers on `--session [id]` or phrasing like 'talk to my opencode', 'ask the opencode I have open', 'tell opencode …'. Either way the reply is shown inline, clearly attributed to opencode."
 ---
 
 ## Available models
@@ -11,7 +11,7 @@ Call the `list_models` tool from the `opencode` MCP server to get the current li
 
 Default to the **one-off query path** (Step 2) — a fresh, stateless question to any opencode model.
 
-Use the **session path** (Step 5) instead when the user writes `--session [id]`, or says something like "talk to my opencode", "ask the opencode I have open", "tell opencode …" — i.e. they mean the opencode instance they already have running, not a fresh question.
+Use the **session path** (Step 5) instead when the user writes `--session [id]`, or says something like "talk to my opencode", "ask the opencode I have open", "tell opencode …" — i.e. they mean the opencode they already have running, not a fresh question.
 
 ## Step 2 — Resolve the prompt and model (one-off path)
 
@@ -52,11 +52,11 @@ Do not paraphrase, edit, or interpret the output — show it exactly as returned
 
 ## Step 5 — Find the session (session path)
 
-Call `list_sessions({directory?})` on the `opencode` MCP server. It auto-discovers every opencode window listening on a local port, so it lists sessions from all of them at once — each line includes `port <n>` (or several ports, when the same project is open in two windows).
+Call `list_sessions({directory?})` on the `opencode` MCP server. opencode v2 runs a shared background service, and the MCP finds it automatically, so a plain `opencode` is visible with nothing extra to start. `list_sessions` lists the sessions of the service and of any other servers (such as a headless instance) at once. `port` selects a server, not a window; a session shared by several servers is routed to the one that owns it.
 
 - If the user gave an id, use that session.
-- Otherwise, if sessions span multiple directories/ports and it isn't obvious which one the user means, ask — or pick the one matching the current project directory when that's unambiguous.
-- If the list is empty or the call errors, tell the user opencode isn't reachable: they need to start opencode with `oc` (or `opencode --port <free port>`), then type a first message so the session exists — then stop. A plain `opencode` opens no port and is invisible to the MCP.
+- Otherwise, if sessions span multiple directories or servers and it isn't obvious which one the user means, ask — or pick the one matching the current project directory when that's unambiguous.
+- If the list is empty or the call errors, tell the user opencode isn't reachable: they need to start opencode v2 and send a first message so the session exists — then stop.
 
 ## Step 6 — Send the message
 
@@ -64,9 +64,11 @@ Call `send({session_id, prompt, agent, timeout_seconds?, port?})`.
 
 Default `agent` to `"plan"` — the default `build` agent can edit files on disk, so only pass a different agent when the user names one explicitly.
 
-By default `send` routes to the window that owns the session (lowest port if the same session shows on several) — only pass `port` when the user names a specific window.
+By default `send` routes to the server that owns the session — only pass `port` when the user names a specific server.
 
-The message appears live in the user's opencode TUI, same as if they'd typed it — never invent or discard a session.
+A passed `agent` or `model` switches the session for its later turns too, because opencode v2 has no per-message agent or model. Say so in the reply, naming the agent, so the user can switch back.
+
+The message appears live in the user's opencode, same as if they'd typed it — never invent or discard a session.
 
 If the call times out ("Still running … use read"), go to Step 7 to catch up instead of resending.
 
