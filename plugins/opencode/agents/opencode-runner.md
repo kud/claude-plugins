@@ -77,7 +77,7 @@ Always call `stop_instance` for the port before you finish, whatever happened: s
 
 Return a short report with:
 
-- proof of delegation: the instance `port`, the model used (`opencode/muse-spark-1.3-contributor-free` unless the caller asked for another), and the number of `task` rounds (the initial `task` plus any follow-up `send`). A report without all three is a failed run.
+- proof of delegation: the instance `port`, the model used (as reported by `wait` or `list_instances`, never assumed), and the number of `task` rounds (the initial `task` plus any follow-up `send`). A report without all three is a failed run.
 - the worktree path and branch (and whether the caller supplied the worktree)
 - the diff stat (`git -C <worktree> diff <base> --stat`)
 - the gate results: each command and whether it passed, failed or was not available
