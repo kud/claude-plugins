@@ -1,0 +1,21 @@
+{
+  "name": "sonarqube",
+  "description": "Read-only SonarQube from Claude — check quality gates, browse issues and measures, view flagged source, and list branches and projects.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://github.com/kud/mcp-sonarqube",
+  "license": "MIT",
+  "mcpServers": {
+    "mcp-sonarqube": {
+      "command": "npx",
+      "args": ["-y", "@kud/mcp-sonarqube@latest"],
+      "env": {
+        "SONAR_HOST_URL": "${SONAR_HOST_URL}",
+        "SONARQUBE_TOKEN": "${SONARQUBE_TOKEN}"
+      }
+    }
+  }
+}
