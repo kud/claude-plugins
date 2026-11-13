@@ -30,7 +30,7 @@ Install the CLI the skill drives (Node 22 or later):
 npm i -g @kud/incidents-cli
 ```
 
-Without a global install the skill falls back to `npx -y @kud/incidents-cli@latest`.
+The global install is optional: without it, the plugin ships its own `incidents` that runs the CLI through npx.
 
 The services come from your own config, `~/.config/incidents/config.yml` plus
 any `config.d/*.yml`. With no config it watches `github`, `npm`, `cloudflare`

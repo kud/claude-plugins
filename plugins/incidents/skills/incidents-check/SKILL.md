@@ -11,11 +11,7 @@ Read-only. This skill runs the `incidents` CLI (`@kud/incidents-cli`) to see wha
 incidents list --json
 ```
 
-If `incidents` is not on PATH, use the same arguments through npx:
-
-```sh
-npx -y @kud/incidents-cli@latest list --json
-```
+`incidents` always resolves: a global install of `@kud/incidents-cli` runs directly, and without one this plugin's own `incidents` runs it through npx. Call it by name, never through npx yourself.
 
 Always use `list` with `--json`: it prints once and exits, never opens the interactive view. Exit codes:
 

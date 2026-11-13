@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.10.0"
+    "version": "2.10.1"
   },
   "plugins": [
     {
@@ -144,7 +144,7 @@
     },
     {
       "name": "incidents",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "description": "Check whether a vendor is having an incident before you debug your own code — reads the status pages of the services you depend on through the incidents CLI.",
       "source": "./plugins/incidents",
       "category": "development"

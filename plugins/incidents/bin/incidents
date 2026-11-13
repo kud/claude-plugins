@@ -1,0 +1,4 @@
+#!/bin/sh
+# Fallback for when @kud/incidents-cli is not installed globally: a global
+# install comes earlier on PATH and wins over this one.
+exec npx -y @kud/incidents-cli@latest "$@"
