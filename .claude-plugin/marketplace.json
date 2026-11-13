@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.9.0"
+    "version": "2.10.0"
   },
   "plugins": [
     {
@@ -140,6 +140,13 @@
       "version": "1.0.0",
       "description": "Read-only SonarQube from Claude — check quality gates, browse issues and measures, view flagged source, and list branches and projects.",
       "source": "./plugins/sonarqube",
+      "category": "development"
+    },
+    {
+      "name": "incidents",
+      "version": "1.0.0",
+      "description": "Check whether a vendor is having an incident before you debug your own code — reads the status pages of the services you depend on through the incidents CLI.",
+      "source": "./plugins/incidents",
       "category": "development"
     }
   ]

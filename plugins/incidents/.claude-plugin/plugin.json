@@ -1,0 +1,15 @@
+{
+  "name": "incidents",
+  "description": "Check whether a vendor is having an incident before you debug your own code — reads the status pages of the services you depend on through the incidents CLI.",
+  "version": "1.0.0",
+  "author": {
+    "name": "kud",
+    "url": "https://github.com/kud"
+  },
+  "homepage": "https://www.npmjs.com/package/@kud/incidents-cli",
+  "license": "MIT",
+  "setup": {
+    "instructions": "This plugin ships a skill only, no MCP server. Install the CLI it drives: npm i -g @kud/incidents-cli (Node 22 or later). Without a global install the skill falls back to npx.",
+    "command": "npm i -g @kud/incidents-cli"
+  }
+}
