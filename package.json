@@ -1,5 +1,7 @@
 {
   "name": "claude-plugins",
+  "license": "MIT",
+  "homepage": "https://kud.io/projects/claude-plugins",
   "private": true,
   "type": "module",
   "scripts": {
