@@ -51,6 +51,12 @@ const TOOLS = [ASK, COPY, CHOOSE, LIVE, FOLD, CALLOUT, GRID, BAR, STATUS_TOOL]
 
 const STATE_WIDTH = 11
 
+// Read by the model after the result, never shown: the card already carries the content.
+const LAST =
+  "The user sees this ask as a card with buttons. End your reply here: write nothing after it, not the question again, not a recap."
+const SHOWN =
+  "The user sees this as a card. Do not restate, summarise or announce it; go on with anything new, or stop."
+
 const POLL_MS = 15_000
 const MAX_POLLS = 120
 
@@ -437,14 +443,14 @@ export const register: Register = (on) => {
     const input = readCallout(e)
     if (!input) return { deny: "callout needs a known kind and a body" }
 
-    return { result: calloutMarkdown(input) }
+    return { result: calloutMarkdown(input), context: [SHOWN] }
   })
 
   on("tool.run", { tool: GRID }, (_, e) => {
     const input = readGrid(e)
     if (!input) return { deny: "grid needs rows of a subject and ✓/✗ runs" }
 
-    return { result: gridMarkdown(input) }
+    return { result: gridMarkdown(input), context: [SHOWN] }
   })
 
   on("tool.run", { tool: BAR }, (_, e) => {
@@ -452,7 +458,7 @@ export const register: Register = (on) => {
     if (!input)
       return { deny: "bar needs kind progress, list or spark, with its fields" }
 
-    return { result: barMarkdown(input) }
+    return { result: barMarkdown(input), context: [SHOWN] }
   })
 
   on("tool.run", { tool: STATUS_TOOL }, (_, e) => {
@@ -462,7 +468,7 @@ export const register: Register = (on) => {
         deny: "status needs a title and items with a known state and a ref",
       }
 
-    return { result: statusMarkdown(input) }
+    return { result: statusMarkdown(input), context: [SHOWN] }
   })
 
   on(
@@ -661,6 +667,7 @@ export const register: Register = (on) => {
 
     return {
       result: askMarkdown(input),
+      context: [LAST],
     }
   })
 
@@ -671,6 +678,7 @@ export const register: Register = (on) => {
 
     return {
       result: askMarkdown(input),
+      context: [LAST],
     }
   })
 
@@ -678,14 +686,14 @@ export const register: Register = (on) => {
     const input = readCopy(e)
     if (!input) return { deny: "copy needs at least one value" }
 
-    return { result: copyMarkdown(input) }
+    return { result: copyMarkdown(input), context: [SHOWN] }
   })
 
   on("tool.run", { tool: FOLD }, (_, e) => {
     const input = readFold(e)
     if (!input) return { deny: "fold needs a summary and a body" }
 
-    return { result: foldMarkdown(input) }
+    return { result: foldMarkdown(input), context: [SHOWN] }
   })
 
   on("tool.run", { tool: LIVE }, async ($, e) => {
@@ -699,6 +707,7 @@ export const register: Register = (on) => {
 
     return {
       result: runMarkdown(input, run),
+      context: [SHOWN],
     }
   })
 

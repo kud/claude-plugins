@@ -75,3 +75,9 @@ Every colour is a theme key, so it follows light, dark and colour-blind themes. 
 claude plugin validate plugins/reply-kit
 claude plugin test plugins/reply-kit
 ```
+
+`evals/` holds model-in-the-loop cases: each prompt checks the right card is chosen, its text shape lands in the transcript, and nothing restates the card after it. The tools need a grant there, as the eval runs in a non-interactive mode:
+
+```sh
+claude plugin eval plugins/reply-kit --allow-tools 'mcp__reply-kit__*'
+```
