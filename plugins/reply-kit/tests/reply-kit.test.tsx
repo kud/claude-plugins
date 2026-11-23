@@ -80,3 +80,13 @@ test("the text result row draws nothing under the card", async ($, on) => {
     await ui.unmount();
   }
 });
+
+test("the card draws its heading and buttons on every surface", async ($, on) => {
+  await boot($, on);
+  for (const surface of ["terminal", "desktop", "mobile"] as const) {
+    const ui = await $.ui.mount({ ...row(ask), surface } as any);
+    expect(await ui.find({ type: "Button", key: "option-1" })).toBeTruthy();
+    expect((await ui.find({ type: "Text", text: /À vous/ }))?.text).toContain("👋");
+    await ui.unmount();
+  }
+});

@@ -95,30 +95,46 @@ export const register: Register = (on) => {
       return (
         <Box flexDirection="column">
           {row}
-          <Box flexDirection="column" borderStyle="round" paddingX={1}>
-            <Text bold>── 👋 {input.french ? "À vous" : "Over to you"} ──</Text>
-            <Text>{input.question}</Text>
-            {chosen === undefined ? (
-              <Box flexDirection="column">
-                {input.options.map((option, index) => (
-                  <Button
-                    key={`option-${index}`}
-                    plain
-                    label={option}
-                    hotkey={String(index + 1)}
-                    variant={index === 0 ? "primary" : "secondary"}
-                    onPress={() => choose($, id, input, index)}
-                  />
-                ))}
-              </Box>
-            ) : (
-              input.options.map((option, index) => (
-                <Text dimColor={chosen !== index} bold={chosen === index}>
-                  {chosen === index ? "👉 " : "   "}
-                  {index + 1}. {option}
-                </Text>
-              ))
-            )}
+          <Box flexDirection="column" marginTop={1}>
+            <Box
+              flexDirection="column"
+              borderStyle="round"
+              borderColor="subtle"
+              paddingX={2}
+            >
+              <Text bold>
+                ── 👋 {input.french ? "À vous" : "Over to you"} ──
+              </Text>
+              <Text>{input.question}</Text>
+              <Text> </Text>
+              {chosen === undefined ? (
+                <Box flexDirection="column">
+                  {input.options.map((option, index) => (
+                    <Button
+                      key={`option-${index}`}
+                      plain
+                      label={option}
+                      hotkey={String(index + 1)}
+                      variant={index === 0 ? "primary" : "secondary"}
+                      onPress={() => choose($, id, input, index)}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                input.options.map((option, index) =>
+                  chosen === index ? (
+                    <Text bold>
+                      👉 {index + 1}. {option}
+                    </Text>
+                  ) : (
+                    <Text color="inactive">
+                      {"   "}
+                      {index + 1}. {option}
+                    </Text>
+                  ),
+                )
+              )}
+            </Box>
           </Box>
         </Box>
       )
