@@ -51,7 +51,7 @@ test("copy answers the plain values and copies the pressed one", async ($, on) =
     items: [{ label: "Run it", value: "npm run dev" }, { value: "~/notes.md" }],
   }
   const ran: any = await ($.tool.call as any)({ tool: tool("copy"), ...input })
-  expect(ran.result).toBe("npm run dev\n~/notes.md")
+  expect(ran.result).toBe("Run it\nnpm run dev\n~/notes.md")
 
   const ui = await $.ui.mount({
     ...card("copy", input),

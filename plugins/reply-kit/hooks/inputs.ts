@@ -18,7 +18,7 @@ export const readCopy = (value: unknown): CopyInput | undefined => {
       value: item!.value as string,
       label: typeof item!.label === "string" ? item!.label : undefined,
     }))
-  return whole.length > 0 ? { items: whole.slice(0, 9) } : undefined
+  return whole.length > 0 ? { items: whole.slice(0, 4) } : undefined
 }
 
 export const readFold = (value: unknown): FoldInput | undefined => {
@@ -92,3 +92,9 @@ export const chosenText = (picked: number[]) =>
     .sort((a, b) => a - b)
     .map((index) => String(index + 1))
     .join(", ")
+
+// Each label on its own line above its value, as the design system's copy block.
+export const copyMarkdown = (input: CopyInput) =>
+  input.items
+    .flatMap((item) => (item.label ? [item.label, item.value] : [item.value]))
+    .join("\n")

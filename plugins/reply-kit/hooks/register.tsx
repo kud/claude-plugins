@@ -7,6 +7,7 @@ import {
   isOver,
   liveArgv,
   parseRun,
+  copyMarkdown,
   readCopy,
   readFold,
   readLive,
@@ -224,7 +225,7 @@ export const register: Register = (on) => {
         properties: {
           items: {
             type: "array",
-            maxItems: 9,
+            maxItems: 4,
             items: {
               type: "object",
               properties: {
@@ -271,7 +272,7 @@ export const register: Register = (on) => {
     if (!input) return { deny: "ask needs a question and at least two options" }
 
     return {
-      result: `${askMarkdown(input)}\n(Drawn as a card with buttons; wait for the user's choice.)`,
+      result: askMarkdown(input),
     }
   })
 
@@ -281,7 +282,7 @@ export const register: Register = (on) => {
       return { deny: "choose needs a question and at least two options" }
 
     return {
-      result: `${askMarkdown(input)}\n(Drawn as toggles with a Done button; the reply lists the chosen numbers.)`,
+      result: askMarkdown(input),
     }
   })
 
@@ -289,7 +290,7 @@ export const register: Register = (on) => {
     const input = readCopy(e)
     if (!input) return { deny: "copy needs at least one value" }
 
-    return { result: input.items.map((item) => item.value).join("\n") }
+    return { result: copyMarkdown(input) }
   })
 
   on("tool.run", { tool: FOLD }, (_, e) => {
@@ -310,7 +311,7 @@ export const register: Register = (on) => {
     if (!isOver(run)) void watchRun($, id, input)
 
     return {
-      result: `${runMarkdown(input, run)}\n(The card keeps updating until the run ends.)`,
+      result: runMarkdown(input, run),
     }
   })
 
@@ -530,11 +531,15 @@ export const register: Register = (on) => {
                 </Text>
                 <Text> </Text>
                 {run.jobs.map((job) => (
-                  <Text>
-                    {stateWord(job.status, job.conclusion).padEnd(12)}
-                    {job.name}
-                  </Text>
+                  <Box flexDirection="row">
+                    <Box width={11}>
+                      <Text>{stateWord(job.status, job.conclusion)}</Text>
+                    </Box>
+                    <Text>{job.name}</Text>
+                  </Box>
                 ))}
+                {isOver(run) && run.url ? <Text> </Text> : null}
+                {isOver(run) && run.url ? <Text>{run.url}</Text> : null}
               </Box>
             ),
           )}

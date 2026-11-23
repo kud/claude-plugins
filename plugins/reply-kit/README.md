@@ -5,8 +5,8 @@ A Claude Code [mod](https://code.claude.com/docs/en/plugins/mods/overview) that 
 ```
 ── 👋 Over to you ──
 Publish 2.4.1 now?
-1: Yes
-2: Not yet
+1. Yes
+2. Not yet
 ```
 
 ## Install
@@ -48,7 +48,7 @@ Each is a tool drawn as a card under its row, in the same quiet frame.
 | Tool     | Card                                                        | Result the model reads   |
 | -------- | ----------------------------------------------------------- | ------------------------ |
 | `choose` | options toggle; **Done** sends the chosen numbers (`1, 3`)  | the ask as text          |
-| `copy`   | each value with a **Copy** button (clipboard)               | the values, one per line |
+| `copy`   | up to four values, each with a **Copy** button             | each label above its value |
 | `live`   | a GitHub Actions run, job states updating in place          | a snapshot of the run    |
 | `fold`   | a long block under one summary line, opened by click or `o` | the summary and its size |
 
