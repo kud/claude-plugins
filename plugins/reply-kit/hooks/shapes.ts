@@ -22,3 +22,12 @@ export const askMarkdown = (input: AskInput) =>
 // What the press puts in the conversation: the digit closes it like the word.
 export const answerText = (input: AskInput, index: number) =>
   `${index + 1}. ${input.options[index]}`;
+
+// choose's question says more than one may be picked, as the design system's shape does.
+export const readChoose = (value: unknown): AskInput | undefined => {
+  const input = readAsk(value)
+  if (!input) return undefined
+  const hint = input.french ? "(une ou plusieurs)" : "(one or more)"
+  const question = input.question.trimEnd().endsWith(hint) ? input.question : `${input.question.trimEnd()} ${hint}`
+  return { ...input, question }
+}
