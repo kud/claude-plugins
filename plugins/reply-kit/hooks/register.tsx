@@ -203,7 +203,7 @@ export const register: Register = (on) => {
     await $.tool.register({
       name: "choose",
       description:
-        'A multi-select ask: each option toggles, and a Done button sends the chosen numbers as the user\'s reply ("1, 3"). Same rules as ask: call it last, nothing after it, one per reply; isGated: true only drafts the reply.',
+        'A multi-select ask: each option toggles, and a Done button sends the chosen numbers as the user\'s reply ("1, 3"). Call it last: nothing after it in the reply, no sentence announcing or explaining the card. One per reply. isGated: true only drafts the reply.',
       inputSchema: {
         type: "object",
         properties: {
@@ -219,7 +219,7 @@ export const register: Register = (on) => {
     await $.tool.register({
       name: "copy",
       description:
-        "Values the user will copy (a command, a path, a URL), each with a copy-to-clipboard button. Use in place of a bare line to copy; at most four values.",
+        "Values the user will copy (a command, a path, a URL), each with a copy-to-clipboard button. Use in place of a bare line to copy; at most four values. Never follow the card with a sentence that restates or announces what it shows.",
       inputSchema: {
         type: "object",
         properties: {
@@ -243,7 +243,7 @@ export const register: Register = (on) => {
     await $.tool.register({
       name: "live",
       description:
-        "A card that follows a GitHub Actions run in place, by repository (owner/repo) and run id: each job's state word updates until the run ends. Use for a CI run the user is waiting on.",
+        "A card that follows a GitHub Actions run in place, by repository (owner/repo) and run id: each job's state word updates until the run ends. Use for a CI run the user is waiting on. Never follow the card with a sentence that restates or announces what it shows.",
       inputSchema: {
         type: "object",
         properties: { repo: { type: "string" }, runId: { type: "string" } },
@@ -254,7 +254,7 @@ export const register: Register = (on) => {
     await $.tool.register({
       name: "fold",
       description:
-        "A long block (a log, a diff, a long output) folded under one summary line the user opens or closes. Use when the detail is worth having but not worth reading by default.",
+        "A long block (a log, a diff, a long output) folded under one summary line the user opens or closes. Use when the detail is worth having but not worth reading by default. Never follow the card with a sentence that restates or announces what it shows.",
       inputSchema: {
         type: "object",
         properties: { summary: { type: "string" }, body: { type: "string" } },
@@ -319,10 +319,11 @@ export const register: Register = (on) => {
     "ui.render",
     { component: "ToolUse", props: { tool: ASK } },
     async ($, e, next) => {
-      const row = await next(e)
       // The input streams in: until it holds a question and two options, draw the row alone.
       const input = readAsk(e.props.input)
-      if (!input) return row
+      if (!input) return next(e)
+      // The card carries the content: the row above it shows the tool name alone.
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
 
       const { Box, Button, Text } = $.ui.resolve(e)
       const id = e.props.tool_use_id
@@ -378,9 +379,10 @@ export const register: Register = (on) => {
     "ui.render",
     { component: "ToolUse", props: { tool: CHOOSE } },
     async ($, e, next) => {
-      const row = await next(e)
       const input = readAsk(e.props.input)
-      if (!input) return row
+      if (!input) return next(e)
+      // The card carries the content: the row above it shows the tool name alone.
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
 
       const { Box, Button, Text } = $.ui.resolve(e)
       const id = e.props.tool_use_id
@@ -452,9 +454,10 @@ export const register: Register = (on) => {
     "ui.render",
     { component: "ToolUse", props: { tool: COPY } },
     async ($, e, next) => {
-      const row = await next(e)
       const input = readCopy(e.props.input)
-      if (!input) return row
+      if (!input) return next(e)
+      // The card carries the content: the row above it shows the tool name alone.
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
 
       const { Box, Button, Text } = $.ui.resolve(e)
       const id = e.props.tool_use_id
@@ -502,9 +505,10 @@ export const register: Register = (on) => {
     "ui.render",
     { component: "ToolUse", props: { tool: LIVE } },
     async ($, e, next) => {
-      const row = await next(e)
       const input = readLive(e.props.input)
-      if (!input) return row
+      if (!input) return next(e)
+      // The card carries the content: the row above it shows the tool name alone.
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
 
       const { Box, Text } = $.ui.resolve(e)
       const run = (await read($, runs))[e.props.tool_use_id]
@@ -552,9 +556,10 @@ export const register: Register = (on) => {
     "ui.render",
     { component: "ToolUse", props: { tool: FOLD } },
     async ($, e, next) => {
-      const row = await next(e)
       const input = readFold(e.props.input)
-      if (!input) return row
+      if (!input) return next(e)
+      // The card carries the content: the row above it shows the tool name alone.
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
 
       const { Box, Button, Text } = $.ui.resolve(e)
       const id = e.props.tool_use_id
@@ -571,7 +576,6 @@ export const register: Register = (on) => {
               <Button
                 key="fold"
                 plain
-                hotkey="o"
                 label={`${isOpen ? "▾" : "▸"} ${input.summary} (${lines} lines)`}
                 onPress={() =>
                   update($, folds, (all) => ({ ...all, [id]: !isOpen }))

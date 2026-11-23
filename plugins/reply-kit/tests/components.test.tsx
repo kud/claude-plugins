@@ -206,3 +206,20 @@ test("live updates the card in place and stops polling when the run ends", async
   expect(calls.length).toBe(2)
   await ui.unmount()
 })
+
+test("the row above a whole card shows no arguments; a streaming one shows them", async ($, on) => {
+  const seen: unknown[] = []
+  on("ui.render", { component: "ToolUse" }, ($: any, e: any) => {
+    seen.push(e.props.input)
+    const { Text } = $.ui.resolve(e)
+    return <Text>row</Text>
+  })
+  await boot($, on)
+  const whole = { summary: "log", body: "a\nb" }
+  const ui = await $.ui.mount({ ...card("fold", whole), surface: "terminal" } as any)
+  expect(seen.at(-1)).toEqual({})
+  await ui.unmount()
+  const half = await $.ui.mount({ ...card("fold", { summary: "log" }), surface: "terminal" } as any)
+  expect(seen.at(-1)).toEqual({ summary: "log" })
+  await half.unmount()
+})
