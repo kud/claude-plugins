@@ -15,14 +15,47 @@ import {
   runMarkdown,
   stateWord,
 } from "./inputs"
-import { answerText, askMarkdown, readAsk } from "./shapes"
+import { answerText, askMarkdown, readAsk, readChoose } from "./shapes"
+import {
+  CALLOUTS,
+  REF_MAX,
+  STATUS,
+  barMarkdown,
+  calloutHead,
+  calloutMarkdown,
+  cut,
+  glyphs,
+  gridMarkdown,
+  listBar,
+  progressCells,
+  readBar,
+  readCallout,
+  readGrid,
+  readStatus,
+  sparkline,
+  statusCounts,
+  statusMarkdown,
+  statusRows,
+} from "./visual"
 
 const ASK = "mcp__reply-kit__ask"
 const COPY = "mcp__reply-kit__copy"
 const CHOOSE = "mcp__reply-kit__choose"
 const LIVE = "mcp__reply-kit__live"
 const FOLD = "mcp__reply-kit__fold"
-const TOOLS = [ASK, COPY, CHOOSE, LIVE, FOLD]
+const CALLOUT = "mcp__reply-kit__callout"
+const GRID = "mcp__reply-kit__grid"
+const BAR = "mcp__reply-kit__bar"
+const STATUS_TOOL = "mcp__reply-kit__status"
+const TOOLS = [ASK, COPY, CHOOSE, LIVE, FOLD, CALLOUT, GRID, BAR, STATUS_TOOL]
+
+const STATE_WIDTH = 11
+
+// Read by the model after the result, never shown: the card already carries the content.
+const LAST =
+  "The user sees this ask as a card with buttons. End your reply here: write nothing after it, not the question again, not a recap."
+const SHOWN =
+  "The user sees this as a card. Do not restate, summarise or announce it; go on with anything new, or stop."
 
 const POLL_MS = 15_000
 const MAX_POLLS = 120
@@ -173,6 +206,41 @@ const card = (Box: any, surface: string, children: unknown) =>
     </Box>
   )
 
+// A visual card: the row, then the content in a frame whose border carries the
+// card's meaning as a second signal (the emoji and the word carry the first).
+const framed = (
+  Box: any,
+  surface: string,
+  row: unknown,
+  border: string,
+  children: unknown,
+) =>
+  surface === "mobile" ? (
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor={border}
+      paddingX={1}
+    >
+      {row}
+      {children}
+    </Box>
+  ) : (
+    <Box flexDirection="column">
+      {row}
+      <Box flexDirection="column" marginTop={1}>
+        <Box
+          flexDirection="column"
+          borderStyle="round"
+          borderColor={border}
+          paddingX={2}
+        >
+          {children}
+        </Box>
+      </Box>
+    </Box>
+  )
+
 export const register: Register = (on) => {
   // Each card already shows its content; the model still reads the full result.
   on("ui.render", { component: "ToolResult" }, async ($, e, next) => {
@@ -263,9 +331,334 @@ export const register: Register = (on) => {
       },
       isDeferred: false,
     })
+    await $.tool.register({
+      name: "callout",
+      description:
+        "A signal the reader must not skim past, as a card with its kind's colour on the border: warning (also cost), tip, info, insight, urgent or concern. One warning per reply. The body is plain text or bullets.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: Object.keys(CALLOUTS) },
+          body: { type: "string" },
+          label: {
+            type: "string",
+            description: "Overrides the kind's label, e.g. Cost.",
+          },
+          french: { type: "boolean" },
+        },
+        required: ["kind", "body"],
+      },
+      isDeferred: false,
+    })
+    await $.tool.register({
+      name: "grid",
+      description:
+        "A run grid: one row per subject, one glyph per finished run, oldest first, ✓ pass and ✗ fail. For a run still in progress use live.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "e.g. CI, last 7 runs" },
+          rows: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                subject: { type: "string" },
+                runs: {
+                  type: "string",
+                  description: "✓ and ✗ glyphs, oldest first",
+                },
+              },
+              required: ["subject", "runs"],
+            },
+          },
+        },
+        required: ["rows"],
+      },
+      isDeferred: false,
+    })
+    await $.tool.register({
+      name: "bar",
+      description:
+        "Bars that never fuse: kind progress (label, value, max), list (title, unit, items of label and value, longest bar 20 cells) or spark (title, figure, note, values). The figure always sits beside the bar.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["progress", "list", "spark"] },
+          label: { type: "string" },
+          value: { type: "number" },
+          max: { type: "number" },
+          title: { type: "string" },
+          unit: { type: "string" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string" },
+                value: { type: "number" },
+                display: { type: "string" },
+              },
+              required: ["label", "value"],
+            },
+          },
+          figure: { type: "string" },
+          note: { type: "string" },
+          values: { type: "array", items: { type: "number" } },
+        },
+        required: ["kind"],
+      },
+      isDeferred: false,
+    })
+    await $.tool.register({
+      name: "status",
+      description:
+        "A ledger of items with their state, as a card with aligned columns: a title with counts by state, then one row per item (state, ref as owner/repo#N, what in a few words). States: done, pending, yours, risk, urgent, open. The why goes below in prose, never in a cell.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                state: { type: "string", enum: Object.keys(STATUS) },
+                ref: { type: "string" },
+                what: { type: "string" },
+              },
+              required: ["state", "ref"],
+            },
+          },
+        },
+        required: ["title", "items"],
+      },
+      isDeferred: false,
+    })
 
     return started
   })
+
+  on("tool.run", { tool: CALLOUT }, (_, e) => {
+    const input = readCallout(e)
+    if (!input) return { deny: "callout needs a known kind and a body" }
+
+    return { result: calloutMarkdown(input), context: [SHOWN] }
+  })
+
+  on("tool.run", { tool: GRID }, (_, e) => {
+    const input = readGrid(e)
+    if (!input) return { deny: "grid needs rows of a subject and ✓/✗ runs" }
+
+    return { result: gridMarkdown(input), context: [SHOWN] }
+  })
+
+  on("tool.run", { tool: BAR }, (_, e) => {
+    const input = readBar(e)
+    if (!input)
+      return { deny: "bar needs kind progress, list or spark, with its fields" }
+
+    return { result: barMarkdown(input), context: [SHOWN] }
+  })
+
+  on("tool.run", { tool: STATUS_TOOL }, (_, e) => {
+    const input = readStatus(e)
+    if (!input)
+      return {
+        deny: "status needs a title and items with a known state and a ref",
+      }
+
+    return { result: statusMarkdown(input), context: [SHOWN] }
+  })
+
+  on(
+    "ui.render",
+    { component: "ToolUse", props: { tool: CALLOUT } },
+    async ($, e, next) => {
+      const input = readCallout(e.props.input)
+      if (!input) return next(e)
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
+      const { Box, Text } = $.ui.resolve(e)
+
+      return framed(
+        Box,
+        e.surface,
+        row,
+        CALLOUTS[input.kind].border,
+        <Box flexDirection="column">
+          <Text bold>{calloutHead(input)}</Text>
+          <Text> </Text>
+          <Text>{input.body}</Text>
+        </Box>,
+      )
+    },
+  )
+
+  on(
+    "ui.render",
+    { component: "ToolUse", props: { tool: GRID } },
+    async ($, e, next) => {
+      const input = readGrid(e.props.input)
+      if (!input) return next(e)
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
+      const { Box, Text } = $.ui.resolve(e)
+      const width =
+        Math.min(
+          REF_MAX,
+          Math.max(...input.rows.map((one) => one.subject.length)),
+        ) + 2
+
+      return framed(
+        Box,
+        e.surface,
+        row,
+        "subtle",
+        <Box flexDirection="column">
+          {input.title ? <Text color="inactive">{input.title}</Text> : null}
+          {input.title ? <Text> </Text> : null}
+          {input.rows.map((one) => (
+            <Box flexDirection="row">
+              <Box width={width}>
+                <Text>{cut(one.subject, REF_MAX)}</Text>
+              </Box>
+              <Text>
+                {one.runs.map((pass) => (
+                  <Text color={pass ? "success" : "error"}>
+                    {glyphs([pass])}
+                  </Text>
+                ))}
+              </Text>
+            </Box>
+          ))}
+        </Box>,
+      )
+    },
+  )
+
+  on(
+    "ui.render",
+    { component: "ToolUse", props: { tool: BAR } },
+    async ($, e, next) => {
+      const input = readBar(e.props.input)
+      if (!input) return next(e)
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
+      const { Box, Text } = $.ui.resolve(e)
+
+      if (input.kind === "progress") {
+        const { fill, track } = progressCells(input.value, input.max)
+        return framed(
+          Box,
+          e.surface,
+          row,
+          "subtle",
+          <Text>
+            {input.label}
+            {"  "}
+            <Text color="suggestion">{fill}</Text>
+            <Text color="subtle">{track}</Text>
+            {"  "}
+            {input.value}/{input.max}
+          </Text>,
+        )
+      }
+
+      if (input.kind === "spark") {
+        return framed(
+          Box,
+          e.surface,
+          row,
+          "subtle",
+          <Box flexDirection="column">
+            {input.title ? <Text color="inactive">{input.title}</Text> : null}
+            <Text>
+              <Text bold>{input.figure}</Text>
+              {input.note ? `  ${input.note}` : ""}
+            </Text>
+            <Text color="suggestion">{sparkline(input.values)}</Text>
+          </Box>,
+        )
+      }
+
+      const top = Math.max(...input.items.map((item) => item.value))
+      const labelWidth =
+        Math.min(
+          REF_MAX,
+          Math.max(...input.items.map((item) => item.label.length)),
+        ) + 2
+      const figureWidth = Math.max(
+        ...input.items.map(
+          (item) => (item.display ?? String(item.value)).length,
+        ),
+      )
+
+      return framed(
+        Box,
+        e.surface,
+        row,
+        "subtle",
+        <Box flexDirection="column">
+          {input.title ? (
+            <Text color="inactive">{`${input.title}${input.unit ? ` (${input.unit})` : ""}`}</Text>
+          ) : null}
+          {input.items.map((item, index) => (
+            <Box
+              flexDirection="row"
+              marginTop={index === 0 && !input.title ? 0 : 1}
+            >
+              <Box width={labelWidth}>
+                <Text>{cut(item.label, REF_MAX)}</Text>
+              </Box>
+              <Box width={22}>
+                <Text color="suggestion">{listBar(item.value, top)}</Text>
+              </Box>
+              <Box width={figureWidth} justifyContent="flex-end">
+                <Text>{item.display ?? String(item.value)}</Text>
+              </Box>
+            </Box>
+          ))}
+        </Box>,
+      )
+    },
+  )
+
+  on(
+    "ui.render",
+    { component: "ToolUse", props: { tool: STATUS_TOOL } },
+    async ($, e, next) => {
+      const input = readStatus(e.props.input)
+      if (!input) return next(e)
+      const row = await next({ ...e, props: { ...e.props, input: {} } })
+      const { Box, Text } = $.ui.resolve(e)
+      const rows = statusRows(input)
+      const refWidth =
+        Math.min(REF_MAX, Math.max(...rows.map((one) => one.ref.length))) + 2
+
+      return framed(
+        Box,
+        e.surface,
+        row,
+        "subtle",
+        <Box flexDirection="column">
+          <Text bold>{input.title}</Text>
+          <Text>{statusCounts(input)}</Text>
+          <Text> </Text>
+          {rows.map((one) => (
+            <Box flexDirection="row">
+              <Box width={STATE_WIDTH}>
+                <Text color={STATUS[one.state].colour}>
+                  {STATUS[one.state].word}
+                </Text>
+              </Box>
+              <Box width={refWidth}>
+                <Text bold>{cut(one.ref, REF_MAX)}</Text>
+              </Box>
+              <Text>{one.what}</Text>
+            </Box>
+          ))}
+        </Box>,
+      )
+    },
+  )
 
   // The tool's arguments sit at the top of `e`, beside `tool` and `tool_use_id`.
   on("tool.run", { tool: ASK }, (_, e) => {
@@ -274,16 +667,18 @@ export const register: Register = (on) => {
 
     return {
       result: askMarkdown(input),
+      context: [LAST],
     }
   })
 
   on("tool.run", { tool: CHOOSE }, (_, e) => {
-    const input = readAsk(e)
+    const input = readChoose(e)
     if (!input)
       return { deny: "choose needs a question and at least two options" }
 
     return {
       result: askMarkdown(input),
+      context: [LAST],
     }
   })
 
@@ -291,14 +686,14 @@ export const register: Register = (on) => {
     const input = readCopy(e)
     if (!input) return { deny: "copy needs at least one value" }
 
-    return { result: copyMarkdown(input) }
+    return { result: copyMarkdown(input), context: [SHOWN] }
   })
 
   on("tool.run", { tool: FOLD }, (_, e) => {
     const input = readFold(e)
     if (!input) return { deny: "fold needs a summary and a body" }
 
-    return { result: foldMarkdown(input) }
+    return { result: foldMarkdown(input), context: [SHOWN] }
   })
 
   on("tool.run", { tool: LIVE }, async ($, e) => {
@@ -312,6 +707,7 @@ export const register: Register = (on) => {
 
     return {
       result: runMarkdown(input, run),
+      context: [SHOWN],
     }
   })
 
@@ -379,7 +775,7 @@ export const register: Register = (on) => {
     "ui.render",
     { component: "ToolUse", props: { tool: CHOOSE } },
     async ($, e, next) => {
-      const input = readAsk(e.props.input)
+      const input = readChoose(e.props.input)
       if (!input) return next(e)
       // The card carries the content: the row above it shows the tool name alone.
       const row = await next({ ...e, props: { ...e.props, input: {} } })

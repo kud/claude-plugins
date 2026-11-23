@@ -137,7 +137,7 @@
     },
     {
       "name": "reply-kit",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "description": "End a reply with a clickable ask — numbered options drawn as buttons, where a press becomes your answer, or only drafts it when the action is hard to undo.",
       "source": "./plugins/reply-kit",
       "category": "productivity"

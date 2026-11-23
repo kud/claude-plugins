@@ -1,0 +1,5 @@
+---
+type: tool_used
+tool: mcp__reply-kit__ask
+input_match: '"isGated"\s*:\s*true'
+---
