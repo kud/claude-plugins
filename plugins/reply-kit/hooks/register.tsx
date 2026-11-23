@@ -35,9 +35,9 @@ export const register: Register = (on) => {
     "ui.render",
     { component: "ToolResult", props: { tool: ASK } },
     async ($, e) => {
-      const { Text } = $.ui.resolve(e)
+      const { Box } = $.ui.resolve(e)
 
-      return <Text dimColor>(card above)</Text>
+      return <Box />
     },
   )
 
@@ -46,7 +46,7 @@ export const register: Register = (on) => {
     await $.tool.register({
       name: "ask",
       description:
-        "The closing ask as a card with numbered options the user can press; the press becomes their reply. Last thing in a reply, one per reply. isGated: true for a delete, a send, a spend, a merge or anything hard to undo: the press then only drafts the answer and the user sends it themselves.",
+        "The closing ask as a card with numbered options the user can press; the press becomes their reply. Call it last: nothing after it in the reply, no sentence announcing or explaining the card. One per reply. isGated: true for a delete, a send, a spend, a merge or anything hard to undo: the press then only drafts the answer and the user sends it themselves.",
       inputSchema: {
         type: "object",
         properties: {

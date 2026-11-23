@@ -28,7 +28,7 @@ Digits work too: `1` to `6` press the matching option while the card holds the k
 
 ## The fallback
 
-The tool's result is the same ask as text, so the model reads the whole question and a surface without the mod still shows it. That text row is drawn as a dim `(card above)` line where the card is.
+The tool's result is the same ask as text, so the model reads the whole question and a surface without the mod still shows it. Where the card draws, that text row draws nothing, so the ask shows once.
 
 ## Input
 

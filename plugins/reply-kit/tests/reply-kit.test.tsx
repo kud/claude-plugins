@@ -66,7 +66,7 @@ test("a gated ask only drafts the answer for the user to send", async ($, on) =>
   await ui.unmount();
 });
 
-test("the text result row collapses to one line under the card", async ($, on) => {
+test("the text result row draws nothing under the card", async ($, on) => {
   await boot($, on);
   for (const surface of ["terminal", "desktop", "mobile"] as const) {
     const ui = await $.ui.mount({
@@ -76,7 +76,7 @@ test("the text result row collapses to one line under the card", async ($, on) =
       surface,
       props: { tool_use_id: "tu1", tool: ASK, output: "── 👋 À vous ──\nGo?\n1. Oui\n2. Non" },
     } as any);
-    expect((await ui.find({ type: "Text" }))?.text).toBe("(card above)");
+    expect(await ui.find({ type: "Text" })).toBeFalsy();
     await ui.unmount();
   }
 });
