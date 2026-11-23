@@ -6,7 +6,7 @@
     "name": "kud"
   },
   "metadata": {
-    "version": "2.10.1"
+    "version": "2.11.0"
   },
   "plugins": [
     {
@@ -133,6 +133,13 @@
       "version": "0.3.0",
       "description": "See the images you paste into Claude Code — thumbnails above the prompt, drawn with real pixels in kitty and Ghostty (and iTerm2 with CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1), and as half-block thumbnails everywhere else.",
       "source": "./plugins/image-view",
+      "category": "productivity"
+    },
+    {
+      "name": "reply-kit",
+      "version": "0.1.0",
+      "description": "End a reply with a clickable ask — numbered options drawn as buttons, where a press becomes your answer, or only drafts it when the action is hard to undo.",
+      "source": "./plugins/reply-kit",
       "category": "productivity"
     },
     {

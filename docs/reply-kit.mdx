@@ -1,0 +1,30 @@
+---
+title: 👋 reply-kit
+description: End a reply with a clickable ask — numbered options drawn as buttons, where a press becomes your answer, or only drafts it when the action is hard to undo.
+---
+
+The **reply-kit** plugin is a
+[mod](https://code.claude.com/docs/en/plugins/mods/overview) that gives Claude
+one tool, `mcp__reply-kit__ask`. Called at the end of a reply with a question
+and two to six options, it draws a card under the call with one button per
+option.
+
+## 📦 Install
+
+```
+/plugin install reply-kit@kud --scope user
+```
+
+## 👆 What a press does
+
+| Ask             | Press                                            |
+| --------------- | ------------------------------------------------ |
+| plain           | sends `1. Yes` as your next message              |
+| `isGated: true` | puts `1. Yes` in the prompt box; you press Enter |
+
+Use `isGated` for anything hard to undo. A plain press reaches the model as a
+message from the plugin, so it should never stand in for your approval of a
+delete, a send, a spend or a merge.
+
+The tool's result is the same ask as text, so the model reads the full
+question and a surface without the mod still shows it.
