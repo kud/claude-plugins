@@ -98,3 +98,19 @@ export const copyMarkdown = (input: CopyInput) =>
   input.items
     .flatMap((item) => (item.label ? [item.label, item.value] : [item.value]))
     .join("\n")
+
+const FOLD_HEAD = 20
+
+// The text fallback shows the summary and the head of the body, so a surface
+// without the card still carries the content, not a promise of it.
+export const foldMarkdown = (input: FoldInput) => {
+  const lines = input.body.split("\n")
+  const rest = lines.length - FOLD_HEAD
+  return [
+    `▸ ${input.summary} (${lines.length} lines)`,
+    "```",
+    ...lines.slice(0, FOLD_HEAD),
+    ...(rest > 0 ? [`… ${rest} more lines`] : []),
+    "```",
+  ].join("\n")
+}

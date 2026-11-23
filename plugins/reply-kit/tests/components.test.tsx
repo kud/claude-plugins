@@ -223,3 +223,15 @@ test("the row above a whole card shows no arguments; a streaming one shows them"
   expect(seen.at(-1)).toEqual({ summary: "log" })
   await half.unmount()
 })
+
+test("fold's text fallback carries the summary and the first 20 lines", async ($, on) => {
+  await boot($, on)
+  const body = Array.from({ length: 35 }, (_, i) => `line ${i + 1}`).join("\n")
+  const ran: any = await ($.tool.call as any)({ tool: tool("fold"), summary: "e2e log", body })
+  const text = String(ran.result)
+  expect(text.startsWith("▸ e2e log (35 lines)\n```\nline 1\n")).toBe(true)
+  expect(text).toContain("line 20\n… 15 more lines\n```")
+  expect(text.includes("line 21")).toBe(false)
+  const short: any = await ($.tool.call as any)({ tool: tool("fold"), summary: "s", body: "a\nb" })
+  expect(String(short.result)).toBe("▸ s (2 lines)\n```\na\nb\n```")
+})

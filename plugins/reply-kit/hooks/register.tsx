@@ -8,6 +8,7 @@ import {
   liveArgv,
   parseRun,
   copyMarkdown,
+  foldMarkdown,
   readCopy,
   readFold,
   readLive,
@@ -296,9 +297,8 @@ export const register: Register = (on) => {
   on("tool.run", { tool: FOLD }, (_, e) => {
     const input = readFold(e)
     if (!input) return { deny: "fold needs a summary and a body" }
-    const lines = input.body.split("\n").length
 
-    return { result: `Folded under "${input.summary}" (${lines} lines).` }
+    return { result: foldMarkdown(input) }
   })
 
   on("tool.run", { tool: LIVE }, async ($, e) => {
