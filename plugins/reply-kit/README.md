@@ -5,8 +5,8 @@ A Claude Code [mod](https://code.claude.com/docs/en/plugins/mods/overview) that 
 ```
 ── 👋 Over to you ──
 Publish 2.4.1 now?
-1: Yes
-2: Not yet
+1. Yes
+2. Not yet
 ```
 
 ## Install
@@ -40,6 +40,21 @@ The tool's result is the same ask as text, so the model reads the whole question
 | `isGated`  | boolean  | a press drafts the answer instead of sending    |
 
 A call missing the question or two options is refused with a short error rather than drawn half-filled.
+
+## More components
+
+Each is a tool drawn as a card under its row, in the same quiet frame.
+
+| Tool     | Card                                                        | Result the model reads   |
+| -------- | ----------------------------------------------------------- | ------------------------ |
+| `choose` | options toggle; **Done** sends the chosen numbers (`1, 3`)  | the ask as text          |
+| `copy`   | up to four values, each with a **Copy** button             | each label above its value |
+| `live`   | a GitHub Actions run, job states updating in place          | a snapshot of the run    |
+| `fold`   | a long block under one summary line, opened by a click | the summary, then the first 20 lines |
+
+- `choose` takes `isGated` like `ask`: the press only drafts the reply.
+- `copy` writes through the terminal's clipboard; the mobile app has no clipboard path yet, so there it shows the value alone, to select.
+- `live` takes only `repo` (`owner/repo`) and a numeric `runId`, runs `gh run view` every 15 seconds, and stops when the run ends or after half an hour. A reload of the plugin stops it; the card keeps its last state.
 
 ## Develop
 
