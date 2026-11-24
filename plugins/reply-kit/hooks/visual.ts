@@ -260,13 +260,14 @@ export const STATUS: Record<StatusState, { word: string; colour: string }> = {
   open: { word: "💤 open", colour: "text" },
 }
 
+// What needs the reader first, the finished last (the design system's Ledger order).
 const GROUP_ORDER: StatusState[] = [
-  "done",
-  "pending",
+  "urgent",
   "yours",
   "risk",
-  "urgent",
+  "pending",
   "open",
+  "done",
 ]
 const WHAT_MAX = 40
 export const REF_MAX = 24
@@ -325,3 +326,35 @@ export const statusMarkdown = (input: StatusInput) =>
       (item) => `| ${STATUS[item.state].word} | ${item.ref} | ${item.what} |`,
     ),
   ].join("\n")
+
+// ── card width ──────────────────────────────────────────────────────────
+
+// The transcript's bullet column, left of every reply and tool row.
+const GUTTER = 2
+
+// Cells a line takes: an emoji two, a variation selector none, the rest one.
+export const cells = (text: string) => {
+  let width = 0
+  for (const char of text) {
+    const code = char.codePointAt(0) ?? 0
+    if (code === 0xfe0f || code === 0x200d) continue
+    width += code >= 0x1f000 ? 2 : 1
+  }
+  return width
+}
+
+// A card wider than the room left by the gutter loses its right border, so it
+// is held to that room; a card that fits keeps its own width.
+export const cardWidth = (
+  lines: string[],
+  columns: number | undefined,
+  paddingX: number,
+) => {
+  if (columns === undefined) return undefined
+  const natural =
+    Math.max(0, ...lines.flatMap((line) => line.split("\n")).map(cells)) +
+    2 +
+    2 * paddingX
+  const room = Math.max(10, columns - GUTTER)
+  return natural > room ? room : undefined
+}

@@ -1,6 +1,6 @@
 ---
 tags: [visual, status]
-runs: 2
+runs: 1
 max_turns: 6
 ---
 

@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '\| 👉 yours \| acme/site#7 \|'
+pattern: '\*\*Wave 2\*\*: .+\\n- '
 target: trace
 ---

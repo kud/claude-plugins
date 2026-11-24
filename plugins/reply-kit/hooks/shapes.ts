@@ -5,11 +5,12 @@ import type { AskInput } from "../types";
 // an ask only once it holds a question and at least two options.
 export const readAsk = (value: unknown): AskInput | undefined => {
   if (typeof value !== "object" || value === null) return undefined;
-  const { question, options, french, isGated } = value as Record<string, unknown>;
+  const { question, options, multi, french, isGated } = value as Record<string, unknown>;
   if (typeof question !== "string" || !Array.isArray(options)) return undefined;
   const labels = options.filter((o): o is string => typeof o === "string" && o.length > 0);
   if (labels.length < 2) return undefined;
-  return { question, options: labels, french: french === true, isGated: isGated === true };
+  const input = { question, options: labels, french: french === true, isGated: isGated === true };
+  return multi === true ? { ...withHint(input), multi: true } : input;
 };
 
 export const askMarkdown = (input: AskInput) =>
@@ -23,11 +24,9 @@ export const askMarkdown = (input: AskInput) =>
 export const answerText = (input: AskInput, index: number) =>
   `${index + 1}. ${input.options[index]}`;
 
-// choose's question says more than one may be picked, as the design system's shape does.
-export const readChoose = (value: unknown): AskInput | undefined => {
-  const input = readAsk(value)
-  if (!input) return undefined
-  const hint = input.french ? "(une ou plusieurs)" : "(one or more)"
-  const question = input.question.trimEnd().endsWith(hint) ? input.question : `${input.question.trimEnd()} ${hint}`
-  return { ...input, question }
+// A multi-select question says more than one may be picked, as the design system's Choose shape does.
+function withHint(input: AskInput): AskInput {
+  const hint = input.french ? "(une ou plusieurs)" : "(one or more)";
+  const question = input.question.trimEnd().endsWith(hint) ? input.question : `${input.question.trimEnd()} ${hint}`;
+  return { ...input, question };
 }

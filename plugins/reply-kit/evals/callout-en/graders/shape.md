@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '> ⚠️ \*\*Warning\*\*'
+pattern: '> ⚠️ \*\*Warning\*\*\\n(>\\n)?> \S'
 target: trace
 ---

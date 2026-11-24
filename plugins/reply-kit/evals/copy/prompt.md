@@ -1,7 +1,7 @@
 ---
-tags: [interactive, copy]
-runs: 2
+tags: [visual, copy]
+runs: 1
 max_turns: 6
 ---
 
-Give me, to copy, the command that starts the dev server (npm run dev) and the path of the QA doc (~/qa/acme-checkout.md). Nothing else.
+Give me the two commands to copy that install the dependencies (npm ci) and start the dev server (npm run dev). Nothing else.

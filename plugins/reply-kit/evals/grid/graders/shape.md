@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'acme/api   ✓✓✓✗✓✓✓'
+pattern: 'acme/api {2,}✓✓✓✗✓✓✓\\nacme/web {2,}✓✓✓✓✓✓✓'
 target: trace
 ---
