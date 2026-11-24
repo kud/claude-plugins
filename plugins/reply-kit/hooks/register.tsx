@@ -1,61 +1,32 @@
 import { atom, read, update } from "claude-code"
 import type { EngineInterface, Register } from "claude-code"
 
-import type { AskInput, ChooseState, CopyItem, LiveInput } from "../types"
+import type { AskInput, ChooseState, LiveInput } from "../types"
 import {
   chosenText,
   isOver,
   liveArgv,
   parseRun,
-  copyMarkdown,
-  foldMarkdown,
-  readCopy,
-  readFold,
   readLive,
   runMarkdown,
   stateWord,
 } from "./inputs"
-import { answerText, askMarkdown, readAsk, readChoose } from "./shapes"
-import {
-  CALLOUTS,
-  REF_MAX,
-  STATUS,
-  barMarkdown,
-  calloutHead,
-  calloutMarkdown,
-  cut,
-  glyphs,
-  gridMarkdown,
-  listBar,
-  progressCells,
-  readBar,
-  readCallout,
-  readGrid,
-  readStatus,
-  sparkline,
-  statusCounts,
-  statusMarkdown,
-  statusRows,
-} from "./visual"
+import { SHAPES, hasCard, parseReply } from "./markdown"
+import type { Block } from "./markdown"
+import { answerText, askMarkdown, readAsk } from "./shapes"
+import { CALLOUTS, REF_MAX, cut, glyphs, progressCells } from "./visual"
 
+// Two tools only: the ones that do something. Everything else is drawn from
+// the reply's own Markdown, which costs no tokens.
 const ASK = "mcp__reply-kit__ask"
-const COPY = "mcp__reply-kit__copy"
-const CHOOSE = "mcp__reply-kit__choose"
 const LIVE = "mcp__reply-kit__live"
-const FOLD = "mcp__reply-kit__fold"
-const CALLOUT = "mcp__reply-kit__callout"
-const GRID = "mcp__reply-kit__grid"
-const BAR = "mcp__reply-kit__bar"
-const STATUS_TOOL = "mcp__reply-kit__status"
-const TOOLS = [ASK, COPY, CHOOSE, LIVE, FOLD, CALLOUT, GRID, BAR, STATUS_TOOL]
-
-const STATE_WIDTH = 11
+const TOOLS = [ASK, LIVE]
 
 // Read by the model after the result, never shown: the card already carries the content.
 const LAST =
-  "The user sees this ask as a card with buttons. End your reply here: write nothing after it, not the question again, not a recap."
+  "The user sees this ask as a card with buttons. End your reply here: write nothing after it."
 const SHOWN =
-  "The user sees this as a card. Do not restate, summarise or announce it; go on with anything new, or stop."
+  "The user sees this as a card. Do not restate it; go on with anything new, or stop."
 
 const POLL_MS = 15_000
 const MAX_POLLS = 120
@@ -132,14 +103,11 @@ async function sendChoice($: EngineInterface, id: string, isGated: boolean) {
 async function copyOne(
   $: EngineInterface,
   id: string,
-  item: CopyItem,
+  value: string,
   index: number,
   surface: string,
 ) {
-  const copied = await $.ui.copy({
-    text: item.value,
-    surface: surface as never,
-  })
+  const copied = await $.ui.copy({ text: value, surface: surface as never })
   await update($, copies, (all) => ({
     ...all,
     [id]: copied.isCopied
@@ -206,40 +174,176 @@ const card = (Box: any, surface: string, children: unknown) =>
     </Box>
   )
 
-// A visual card: the row, then the content in a frame whose border carries the
-// card's meaning as a second signal (the emoji and the word carry the first).
-const framed = (
+// A card inside a reply: the border carries the meaning as a second signal
+// (the emoji and the word carry the first).
+const frame = (
   Box: any,
   surface: string,
-  row: unknown,
   border: string,
   children: unknown,
-) =>
-  surface === "mobile" ? (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={border}
-      paddingX={1}
-    >
-      {row}
-      {children}
-    </Box>
-  ) : (
+) => (
+  <Box
+    flexDirection="column"
+    borderStyle="round"
+    borderColor={border}
+    paddingX={surface === "mobile" ? 1 : 2}
+  >
+    {children}
+  </Box>
+)
+
+// One block of a reply, drawn. `id` is stable per message and block, so a
+// fold or a copy keeps its state across redraws.
+async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
+  const { Box, Button, Markdown, Text } = $.ui.resolve(e)
+
+  if (block.kind === "markdown") return <Markdown text={block.text} />
+
+  if (block.kind === "callout")
+    return frame(
+      Box,
+      e.surface,
+      CALLOUTS[block.callout].border,
+      <Box flexDirection="column">
+        <Text bold>
+          {CALLOUTS[block.callout].emoji} {block.label}
+        </Text>
+        <Text> </Text>
+        <Markdown text={block.body} />
+      </Box>,
+    )
+
+  if (block.kind === "grid") {
+    const width =
+      Math.min(
+        REF_MAX,
+        Math.max(...block.rows.map((one) => one.subject.length)),
+      ) + 2
+    return frame(
+      Box,
+      e.surface,
+      "subtle",
+      <Box flexDirection="column">
+        {block.title ? <Text color="inactive">{block.title}</Text> : null}
+        {block.title ? <Text> </Text> : null}
+        {block.rows.map((one) => (
+          <Box flexDirection="row">
+            <Box width={width}>
+              <Text>{cut(one.subject, REF_MAX)}</Text>
+            </Box>
+            <Text>
+              {one.runs.map((pass) => (
+                <Text color={pass ? "success" : "error"}>{glyphs([pass])}</Text>
+              ))}
+            </Text>
+          </Box>
+        ))}
+      </Box>,
+    )
+  }
+
+  if (block.kind === "progress") {
+    const { fill, track } = progressCells(block.value, block.max)
+    return frame(
+      Box,
+      e.surface,
+      "subtle",
+      <Text>
+        {block.label}
+        {"  "}
+        <Text color="suggestion">{fill}</Text>
+        <Text color="subtle">{track}</Text>
+        {"  "}
+        {block.value}/{block.max}
+      </Text>,
+    )
+  }
+
+  if (block.kind === "bars") {
+    const labelWidth =
+      Math.min(
+        REF_MAX,
+        Math.max(...block.items.map((item) => item.label.length)),
+      ) + 2
+    const figureWidth = Math.max(
+      ...block.items.map((item) => item.figure.length),
+    )
+    return frame(
+      Box,
+      e.surface,
+      "subtle",
+      <Box flexDirection="column">
+        {block.title ? <Text color="inactive">{block.title}</Text> : null}
+        {block.items.map((item, index) => (
+          <Box flexDirection="row" marginTop={index === 0 && !block.title ? 0 : 1}>
+            <Box width={labelWidth}>
+              <Text>{cut(item.label, REF_MAX)}</Text>
+            </Box>
+            <Box width={22}>
+              <Text color="suggestion">{item.bar}</Text>
+            </Box>
+            <Box width={figureWidth} justifyContent="flex-end">
+              <Text>{item.figure}</Text>
+            </Box>
+          </Box>
+        ))}
+      </Box>,
+    )
+  }
+
+  if (block.kind === "fold") {
+    const isOpen = (await read($, folds))[id] === true
+    return frame(
+      Box,
+      e.surface,
+      "subtle",
+      <Box flexDirection="column">
+        <Button
+          key={`fold-${id}`}
+          plain
+          label={`${isOpen ? "▾" : "▸"} ${block.summary} (${block.lines} lines)`}
+          onPress={() => update($, folds, (all) => ({ ...all, [id]: !isOpen }))}
+        />
+        {isOpen ? <Text> </Text> : null}
+        {isOpen ? <Text>{block.head.join("\n")}</Text> : null}
+        {isOpen && block.rest > 0 ? (
+          <Text color="inactive">… {block.rest} more lines</Text>
+        ) : null}
+      </Box>,
+    )
+  }
+
+  const last = (await read($, copies))[id]
+  return frame(
+    Box,
+    e.surface,
+    "subtle",
     <Box flexDirection="column">
-      {row}
-      <Box flexDirection="column" marginTop={1}>
-        <Box
-          flexDirection="column"
-          borderStyle="round"
-          borderColor={border}
-          paddingX={2}
-        >
-          {children}
+      {block.values.map((value, index) => (
+        <Box flexDirection="column" marginTop={index === 0 ? 0 : 1}>
+          <Text bold>{value}</Text>
+          {/* A remote surface has no clipboard path yet: the phone shows the value alone, to select. */}
+          <Box
+            flexDirection="row"
+            gap={1}
+            display={e.surface === "mobile" ? "none" : "flex"}
+          >
+            <Button
+              key={`copy-${id}-${index}`}
+              label="Copy"
+              onPress={() => copyOne($, id, value, index, e.surface)}
+            />
+            {last?.index === index && (
+              <Text>
+                {last.isCopied ? "✅ copied" : `🔥 not copied: ${last.reason}`}
+              </Text>
+            )}
+          </Box>
         </Box>
-      </Box>
-    </Box>
+      ))}
+    </Box>,
   )
+}
 
 export const register: Register = (on) => {
   // Each card already shows its content; the model still reads the full result.
@@ -250,450 +354,86 @@ export const register: Register = (on) => {
     return <Box />
   })
 
+  // The design system's exact shapes in a reply become cards; the rest of the
+  // reply, and any near miss, stays Markdown as the engine draws it.
+  on("ui.render", { component: "AssistantMessage" }, async ($, e, next) => {
+    if (e.props.isSummary) return next(e)
+    const blocks = parseReply(e.props.text)
+    if (!hasCard(blocks)) return next(e)
+    const { Box } = $.ui.resolve(e)
+
+    // The first Markdown block keeps the engine's own drawing, bullet included.
+    const drawn = await Promise.all(
+      blocks.map((block, index) =>
+        index === 0 && block.kind === "markdown"
+          ? next({ ...e, props: { ...e.props, text: block.text } })
+          : drawBlock($, e, block, `${e.requestId}:${index}`),
+      ),
+    )
+
+    return (
+      <Box flexDirection="column" gap={1}>
+        {drawn}
+      </Box>
+    )
+  })
+
+  // The shapes the model writes, so the cards above have something to draw.
+  on("prompt.compose", async (_, e, next) => {
+    const composed = await next(e)
+    return {
+      sections: [
+        ...composed.sections,
+        { id: "reply-kit:shapes", text: SHAPES, scope: "session" as const },
+      ],
+    }
+  })
+
   on("session.start", async ($, e, next) => {
     const started = await next(e)
-    const strings = { type: "array", items: { type: "string" } }
     await $.tool.register({
       name: "ask",
       description:
-        "The closing ask as a card with numbered options the user can press; the press becomes their reply. Call it last: nothing after it in the reply, no sentence announcing or explaining the card. One per reply. isGated: true for a delete, a send, a spend, a merge or anything hard to undo: the press then only drafts the answer and the user sends it themselves.",
+        "Closing ask: a card of numbered options the user presses; the press is their reply. Call it last, once per reply, and write nothing after it. multi: options toggle and Done sends the chosen numbers. isGated: for a delete, send, spend or merge; the press only drafts the reply.",
       inputSchema: {
         type: "object",
         properties: {
           question: { type: "string" },
-          options: { ...strings, minItems: 2, maxItems: 6 },
-          french: { type: "boolean" },
-          isGated: { type: "boolean" },
-        },
-        required: ["question", "options"],
-      },
-      isDeferred: false,
-    })
-    await $.tool.register({
-      name: "choose",
-      description:
-        'A multi-select ask: each option toggles, and a Done button sends the chosen numbers as the user\'s reply ("1, 3"). Call it last: nothing after it in the reply, no sentence announcing or explaining the card. One per reply. isGated: true only drafts the reply.',
-      inputSchema: {
-        type: "object",
-        properties: {
-          question: { type: "string" },
-          options: { ...strings, minItems: 2, maxItems: 9 },
-          french: { type: "boolean" },
-          isGated: { type: "boolean" },
-        },
-        required: ["question", "options"],
-      },
-      isDeferred: false,
-    })
-    await $.tool.register({
-      name: "copy",
-      description:
-        "Values the user will copy (a command, a path, a URL), each with a copy-to-clipboard button. Use in place of a bare line to copy; at most four values. Never follow the card with a sentence that restates or announces what it shows.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          items: {
+          options: {
             type: "array",
-            maxItems: 4,
-            items: {
-              type: "object",
-              properties: {
-                label: { type: "string" },
-                value: { type: "string" },
-              },
-              required: ["value"],
-            },
+            items: { type: "string" },
+            minItems: 2,
+            maxItems: 9,
           },
+          multi: { type: "boolean" },
+          french: { type: "boolean" },
+          isGated: { type: "boolean" },
         },
-        required: ["items"],
+        required: ["question", "options"],
       },
       isDeferred: false,
     })
     await $.tool.register({
       name: "live",
       description:
-        "A card that follows a GitHub Actions run in place, by repository (owner/repo) and run id: each job's state word updates until the run ends. Use for a CI run the user is waiting on. Never follow the card with a sentence that restates or announces what it shows.",
+        "Follows a GitHub Actions run in place (repo as owner/repo, runId) until it ends. Use for a run the user is waiting on.",
       inputSchema: {
         type: "object",
         properties: { repo: { type: "string" }, runId: { type: "string" } },
         required: ["repo", "runId"],
       },
-      isDeferred: false,
-    })
-    await $.tool.register({
-      name: "fold",
-      description:
-        "A long block (a log, a diff, a long output) folded under one summary line the user opens or closes. Use when the detail is worth having but not worth reading by default. Never follow the card with a sentence that restates or announces what it shows.",
-      inputSchema: {
-        type: "object",
-        properties: { summary: { type: "string" }, body: { type: "string" } },
-        required: ["summary", "body"],
-      },
-      isDeferred: false,
-    })
-    await $.tool.register({
-      name: "callout",
-      description:
-        "A signal the reader must not skim past, as a card with its kind's colour on the border: warning (also cost), tip, info, insight, urgent or concern. One warning per reply. The body is plain text or bullets.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          kind: { type: "string", enum: Object.keys(CALLOUTS) },
-          body: { type: "string" },
-          label: {
-            type: "string",
-            description: "Overrides the kind's label, e.g. Cost.",
-          },
-          french: { type: "boolean" },
-        },
-        required: ["kind", "body"],
-      },
-      isDeferred: false,
-    })
-    await $.tool.register({
-      name: "grid",
-      description:
-        "A run grid: one row per subject, one glyph per finished run, oldest first, ✓ pass and ✗ fail. For a run still in progress use live.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          title: { type: "string", description: "e.g. CI, last 7 runs" },
-          rows: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                subject: { type: "string" },
-                runs: {
-                  type: "string",
-                  description: "✓ and ✗ glyphs, oldest first",
-                },
-              },
-              required: ["subject", "runs"],
-            },
-          },
-        },
-        required: ["rows"],
-      },
-      isDeferred: false,
-    })
-    await $.tool.register({
-      name: "bar",
-      description:
-        "Bars that never fuse: kind progress (label, value, max), list (title, unit, items of label and value, longest bar 20 cells) or spark (title, figure, note, values). The figure always sits beside the bar.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          kind: { type: "string", enum: ["progress", "list", "spark"] },
-          label: { type: "string" },
-          value: { type: "number" },
-          max: { type: "number" },
-          title: { type: "string" },
-          unit: { type: "string" },
-          items: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                label: { type: "string" },
-                value: { type: "number" },
-                display: { type: "string" },
-              },
-              required: ["label", "value"],
-            },
-          },
-          figure: { type: "string" },
-          note: { type: "string" },
-          values: { type: "array", items: { type: "number" } },
-        },
-        required: ["kind"],
-      },
-      isDeferred: false,
-    })
-    await $.tool.register({
-      name: "status",
-      description:
-        "A ledger of items with their state, as a card with aligned columns: a title with counts by state, then one row per item (state, ref as owner/repo#N, what in a few words). States: done, pending, yours, risk, urgent, open. The why goes below in prose, never in a cell.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          items: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                state: { type: "string", enum: Object.keys(STATUS) },
-                ref: { type: "string" },
-                what: { type: "string" },
-              },
-              required: ["state", "ref"],
-            },
-          },
-        },
-        required: ["title", "items"],
-      },
-      isDeferred: false,
+      isDeferred: true,
     })
 
     return started
   })
-
-  on("tool.run", { tool: CALLOUT }, (_, e) => {
-    const input = readCallout(e)
-    if (!input) return { deny: "callout needs a known kind and a body" }
-
-    return { result: calloutMarkdown(input), context: [SHOWN] }
-  })
-
-  on("tool.run", { tool: GRID }, (_, e) => {
-    const input = readGrid(e)
-    if (!input) return { deny: "grid needs rows of a subject and ✓/✗ runs" }
-
-    return { result: gridMarkdown(input), context: [SHOWN] }
-  })
-
-  on("tool.run", { tool: BAR }, (_, e) => {
-    const input = readBar(e)
-    if (!input)
-      return { deny: "bar needs kind progress, list or spark, with its fields" }
-
-    return { result: barMarkdown(input), context: [SHOWN] }
-  })
-
-  on("tool.run", { tool: STATUS_TOOL }, (_, e) => {
-    const input = readStatus(e)
-    if (!input)
-      return {
-        deny: "status needs a title and items with a known state and a ref",
-      }
-
-    return { result: statusMarkdown(input), context: [SHOWN] }
-  })
-
-  on(
-    "ui.render",
-    { component: "ToolUse", props: { tool: CALLOUT } },
-    async ($, e, next) => {
-      const input = readCallout(e.props.input)
-      if (!input) return next(e)
-      const row = await next({ ...e, props: { ...e.props, input: {} } })
-      const { Box, Text } = $.ui.resolve(e)
-
-      return framed(
-        Box,
-        e.surface,
-        row,
-        CALLOUTS[input.kind].border,
-        <Box flexDirection="column">
-          <Text bold>{calloutHead(input)}</Text>
-          <Text> </Text>
-          <Text>{input.body}</Text>
-        </Box>,
-      )
-    },
-  )
-
-  on(
-    "ui.render",
-    { component: "ToolUse", props: { tool: GRID } },
-    async ($, e, next) => {
-      const input = readGrid(e.props.input)
-      if (!input) return next(e)
-      const row = await next({ ...e, props: { ...e.props, input: {} } })
-      const { Box, Text } = $.ui.resolve(e)
-      const width =
-        Math.min(
-          REF_MAX,
-          Math.max(...input.rows.map((one) => one.subject.length)),
-        ) + 2
-
-      return framed(
-        Box,
-        e.surface,
-        row,
-        "subtle",
-        <Box flexDirection="column">
-          {input.title ? <Text color="inactive">{input.title}</Text> : null}
-          {input.title ? <Text> </Text> : null}
-          {input.rows.map((one) => (
-            <Box flexDirection="row">
-              <Box width={width}>
-                <Text>{cut(one.subject, REF_MAX)}</Text>
-              </Box>
-              <Text>
-                {one.runs.map((pass) => (
-                  <Text color={pass ? "success" : "error"}>
-                    {glyphs([pass])}
-                  </Text>
-                ))}
-              </Text>
-            </Box>
-          ))}
-        </Box>,
-      )
-    },
-  )
-
-  on(
-    "ui.render",
-    { component: "ToolUse", props: { tool: BAR } },
-    async ($, e, next) => {
-      const input = readBar(e.props.input)
-      if (!input) return next(e)
-      const row = await next({ ...e, props: { ...e.props, input: {} } })
-      const { Box, Text } = $.ui.resolve(e)
-
-      if (input.kind === "progress") {
-        const { fill, track } = progressCells(input.value, input.max)
-        return framed(
-          Box,
-          e.surface,
-          row,
-          "subtle",
-          <Text>
-            {input.label}
-            {"  "}
-            <Text color="suggestion">{fill}</Text>
-            <Text color="subtle">{track}</Text>
-            {"  "}
-            {input.value}/{input.max}
-          </Text>,
-        )
-      }
-
-      if (input.kind === "spark") {
-        return framed(
-          Box,
-          e.surface,
-          row,
-          "subtle",
-          <Box flexDirection="column">
-            {input.title ? <Text color="inactive">{input.title}</Text> : null}
-            <Text>
-              <Text bold>{input.figure}</Text>
-              {input.note ? `  ${input.note}` : ""}
-            </Text>
-            <Text color="suggestion">{sparkline(input.values)}</Text>
-          </Box>,
-        )
-      }
-
-      const top = Math.max(...input.items.map((item) => item.value))
-      const labelWidth =
-        Math.min(
-          REF_MAX,
-          Math.max(...input.items.map((item) => item.label.length)),
-        ) + 2
-      const figureWidth = Math.max(
-        ...input.items.map(
-          (item) => (item.display ?? String(item.value)).length,
-        ),
-      )
-
-      return framed(
-        Box,
-        e.surface,
-        row,
-        "subtle",
-        <Box flexDirection="column">
-          {input.title ? (
-            <Text color="inactive">{`${input.title}${input.unit ? ` (${input.unit})` : ""}`}</Text>
-          ) : null}
-          {input.items.map((item, index) => (
-            <Box
-              flexDirection="row"
-              marginTop={index === 0 && !input.title ? 0 : 1}
-            >
-              <Box width={labelWidth}>
-                <Text>{cut(item.label, REF_MAX)}</Text>
-              </Box>
-              <Box width={22}>
-                <Text color="suggestion">{listBar(item.value, top)}</Text>
-              </Box>
-              <Box width={figureWidth} justifyContent="flex-end">
-                <Text>{item.display ?? String(item.value)}</Text>
-              </Box>
-            </Box>
-          ))}
-        </Box>,
-      )
-    },
-  )
-
-  on(
-    "ui.render",
-    { component: "ToolUse", props: { tool: STATUS_TOOL } },
-    async ($, e, next) => {
-      const input = readStatus(e.props.input)
-      if (!input) return next(e)
-      const row = await next({ ...e, props: { ...e.props, input: {} } })
-      const { Box, Text } = $.ui.resolve(e)
-      const rows = statusRows(input)
-      const refWidth =
-        Math.min(REF_MAX, Math.max(...rows.map((one) => one.ref.length))) + 2
-
-      return framed(
-        Box,
-        e.surface,
-        row,
-        "subtle",
-        <Box flexDirection="column">
-          <Text bold>{input.title}</Text>
-          <Text>{statusCounts(input)}</Text>
-          <Text> </Text>
-          {rows.map((one) => (
-            <Box flexDirection="row">
-              <Box width={STATE_WIDTH}>
-                <Text color={STATUS[one.state].colour}>
-                  {STATUS[one.state].word}
-                </Text>
-              </Box>
-              <Box width={refWidth}>
-                <Text bold>{cut(one.ref, REF_MAX)}</Text>
-              </Box>
-              <Text>{one.what}</Text>
-            </Box>
-          ))}
-        </Box>,
-      )
-    },
-  )
 
   // The tool's arguments sit at the top of `e`, beside `tool` and `tool_use_id`.
   on("tool.run", { tool: ASK }, (_, e) => {
     const input = readAsk(e)
     if (!input) return { deny: "ask needs a question and at least two options" }
 
-    return {
-      result: askMarkdown(input),
-      context: [LAST],
-    }
-  })
-
-  on("tool.run", { tool: CHOOSE }, (_, e) => {
-    const input = readChoose(e)
-    if (!input)
-      return { deny: "choose needs a question and at least two options" }
-
-    return {
-      result: askMarkdown(input),
-      context: [LAST],
-    }
-  })
-
-  on("tool.run", { tool: COPY }, (_, e) => {
-    const input = readCopy(e)
-    if (!input) return { deny: "copy needs at least one value" }
-
-    return { result: copyMarkdown(input), context: [SHOWN] }
-  })
-
-  on("tool.run", { tool: FOLD }, (_, e) => {
-    const input = readFold(e)
-    if (!input) return { deny: "fold needs a summary and a body" }
-
-    return { result: foldMarkdown(input), context: [SHOWN] }
+    return { result: askMarkdown(input), context: [LAST] }
   })
 
   on("tool.run", { tool: LIVE }, async ($, e) => {
@@ -705,10 +445,7 @@ export const register: Register = (on) => {
     if (run.error) return { deny: `gh could not read the run: ${run.error}` }
     if (!isOver(run)) void watchRun($, id, input)
 
-    return {
-      result: runMarkdown(input, run),
-      context: [SHOWN],
-    }
+    return { result: runMarkdown(input, run), context: [SHOWN] }
   })
 
   on(
@@ -723,8 +460,74 @@ export const register: Register = (on) => {
 
       const { Box, Button, Text } = $.ui.resolve(e)
       const id = e.props.tool_use_id
-      const chosen = (await read($, answers))[id]
+      const heading = (
+        <Text bold>── 👋 {input.french ? "À vous" : "Over to you"} ──</Text>
+      )
+      const picked = (index: number, option: string, isPicked: boolean) =>
+        isPicked ? (
+          <Text bold>
+            👉 {index + 1}. {option}
+          </Text>
+        ) : (
+          <Text color="inactive">
+            {"   "}
+            {index + 1}. {option}
+          </Text>
+        )
 
+      if (input.multi) {
+        const state = (await read($, choices))[id] ?? NO_CHOICE
+        const isGated = input.isGated === true
+        return (
+          <Box {...outer(e.surface)}>
+            {row}
+            {card(
+              Box,
+              e.surface,
+              <Box flexDirection="column">
+                {heading}
+                <Text>{input.question}</Text>
+                <Text> </Text>
+                {state.isSent ? (
+                  input.options.map((option, index) =>
+                    picked(index, option, state.picked.includes(index)),
+                  )
+                ) : (
+                  <Box flexDirection="column">
+                    {input.options.map((option, index) => (
+                      <Button
+                        key={`option-${index}`}
+                        plain
+                        label={`${state.picked.includes(index) ? "[x]" : "[ ]"} ${option}`}
+                        hotkey={String(index + 1)}
+                        onPress={() => toggle($, id, index)}
+                      />
+                    ))}
+                    <Text> </Text>
+                    {state.picked.length > 0 ? (
+                      <Button
+                        key="done"
+                        label={`${input.french ? "Valider" : "Done"}: ${chosenText(state.picked)}`}
+                        hotkey="d"
+                        variant="primary"
+                        onPress={() => sendChoice($, id, isGated)}
+                      />
+                    ) : (
+                      <Text color="inactive">
+                        {input.french
+                          ? "Cochez au moins une option."
+                          : "Tick at least one option."}
+                      </Text>
+                    )}
+                  </Box>
+                )}
+              </Box>,
+            )}
+          </Box>
+        )
+      }
+
+      const chosen = (await read($, answers))[id]
       return (
         <Box {...outer(e.surface)}>
           {row}
@@ -732,9 +535,7 @@ export const register: Register = (on) => {
             Box,
             e.surface,
             <Box flexDirection="column">
-              <Text bold>
-                ── 👋 {input.french ? "À vous" : "Over to you"} ──
-              </Text>
+              {heading}
               <Text>{input.question}</Text>
               <Text> </Text>
               {chosen === undefined ? (
@@ -752,145 +553,10 @@ export const register: Register = (on) => {
                 </Box>
               ) : (
                 input.options.map((option, index) =>
-                  chosen === index ? (
-                    <Text bold>
-                      👉 {index + 1}. {option}
-                    </Text>
-                  ) : (
-                    <Text color="inactive">
-                      {"   "}
-                      {index + 1}. {option}
-                    </Text>
-                  ),
+                  picked(index, option, chosen === index),
                 )
               )}
             </Box>,
-          )}
-        </Box>
-      )
-    },
-  )
-
-  on(
-    "ui.render",
-    { component: "ToolUse", props: { tool: CHOOSE } },
-    async ($, e, next) => {
-      const input = readChoose(e.props.input)
-      if (!input) return next(e)
-      // The card carries the content: the row above it shows the tool name alone.
-      const row = await next({ ...e, props: { ...e.props, input: {} } })
-
-      const { Box, Button, Text } = $.ui.resolve(e)
-      const id = e.props.tool_use_id
-      const state = (await read($, choices))[id] ?? NO_CHOICE
-      const isGated = input.isGated === true
-
-      return (
-        <Box {...outer(e.surface)}>
-          {row}
-          {card(
-            Box,
-            e.surface,
-            <Box flexDirection="column">
-              <Text bold>
-                ── 👋 {input.french ? "À vous" : "Over to you"} ──
-              </Text>
-              <Text>{input.question}</Text>
-              <Text> </Text>
-              {state.isSent ? (
-                input.options.map((option, index) =>
-                  state.picked.includes(index) ? (
-                    <Text bold>
-                      👉 {index + 1}. {option}
-                    </Text>
-                  ) : (
-                    <Text color="inactive">
-                      {"   "}
-                      {index + 1}. {option}
-                    </Text>
-                  ),
-                )
-              ) : (
-                <Box flexDirection="column">
-                  {input.options.map((option, index) => (
-                    <Button
-                      key={`option-${index}`}
-                      plain
-                      label={`${state.picked.includes(index) ? "[x]" : "[ ]"} ${option}`}
-                      hotkey={String(index + 1)}
-                      onPress={() => toggle($, id, index)}
-                    />
-                  ))}
-                  <Text> </Text>
-                  {state.picked.length > 0 ? (
-                    <Button
-                      key="done"
-                      label={`${input.french ? "Valider" : "Done"}: ${chosenText(state.picked)}`}
-                      hotkey="d"
-                      variant="primary"
-                      onPress={() => sendChoice($, id, isGated)}
-                    />
-                  ) : (
-                    <Text color="inactive">
-                      {input.french
-                        ? "Cochez au moins une option."
-                        : "Tick at least one option."}
-                    </Text>
-                  )}
-                </Box>
-              )}
-            </Box>,
-          )}
-        </Box>
-      )
-    },
-  )
-
-  on(
-    "ui.render",
-    { component: "ToolUse", props: { tool: COPY } },
-    async ($, e, next) => {
-      const input = readCopy(e.props.input)
-      if (!input) return next(e)
-      // The card carries the content: the row above it shows the tool name alone.
-      const row = await next({ ...e, props: { ...e.props, input: {} } })
-
-      const { Box, Button, Text } = $.ui.resolve(e)
-      const id = e.props.tool_use_id
-      const last = (await read($, copies))[id]
-
-      return (
-        <Box {...outer(e.surface)}>
-          {row}
-          {card(
-            Box,
-            e.surface,
-            input.items.map((item, index) => (
-              <Box flexDirection="column" marginTop={index === 0 ? 0 : 1}>
-                {item.label && <Text color="inactive">{item.label}</Text>}
-                <Text bold>{item.value}</Text>
-                {/* A remote surface has no clipboard path yet: the phone shows the value alone, to select. */}
-                <Box
-                  flexDirection="row"
-                  gap={1}
-                  display={e.surface === "mobile" ? "none" : "flex"}
-                >
-                  <Button
-                    key={`copy-${index}`}
-                    label="Copy"
-                    hotkey={String(index + 1)}
-                    onPress={() => copyOne($, id, item, index, e.surface)}
-                  />
-                  {last?.index === index && (
-                    <Text>
-                      {last.isCopied
-                        ? "✅ copied"
-                        : `🔥 not copied: ${last.reason}`}
-                    </Text>
-                  )}
-                </Box>
-              </Box>
-            )),
           )}
         </Box>
       )
@@ -942,44 +608,6 @@ export const register: Register = (on) => {
                 {isOver(run) && run.url ? <Text>{run.url}</Text> : null}
               </Box>
             ),
-          )}
-        </Box>
-      )
-    },
-  )
-
-  on(
-    "ui.render",
-    { component: "ToolUse", props: { tool: FOLD } },
-    async ($, e, next) => {
-      const input = readFold(e.props.input)
-      if (!input) return next(e)
-      // The card carries the content: the row above it shows the tool name alone.
-      const row = await next({ ...e, props: { ...e.props, input: {} } })
-
-      const { Box, Button, Text } = $.ui.resolve(e)
-      const id = e.props.tool_use_id
-      const isOpen = (await read($, folds))[id] === true
-      const lines = input.body.split("\n").length
-
-      return (
-        <Box {...outer(e.surface)}>
-          {row}
-          {card(
-            Box,
-            e.surface,
-            <Box flexDirection="column">
-              <Button
-                key="fold"
-                plain
-                label={`${isOpen ? "▾" : "▸"} ${input.summary} (${lines} lines)`}
-                onPress={() =>
-                  update($, folds, (all) => ({ ...all, [id]: !isOpen }))
-                }
-              />
-              {isOpen ? <Text> </Text> : null}
-              {isOpen ? <Text>{input.body}</Text> : null}
-            </Box>,
           )}
         </Box>
       )

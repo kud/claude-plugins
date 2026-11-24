@@ -1,6 +1,7 @@
 export type AskInput = {
   question: string
   options: string[]
+  multi?: boolean
   french?: boolean
   isGated?: boolean
 }

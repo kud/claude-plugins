@@ -1,6 +1,6 @@
 {
   "name": "reply-kit",
-  "description": "Ends a reply with a clickable ask: numbered options drawn as buttons under the tool row, where a press becomes your answer, or only drafts it when the action is hard to undo.",
+  "description": "Ends a reply with a clickable ask, and draws the design system shapes in a reply (call-outs, run grids, bars, folds, commands to copy) as cards, with no tool call.",
   "version": "0.3.0",
   "author": {
     "name": "kud",
@@ -8,6 +8,13 @@
   },
   "homepage": "https://github.com/kud/claude-plugins",
   "license": "MIT",
-  "keywords": ["ask", "buttons", "reply", "mod", "terminal", "claude-code"],
+  "keywords": [
+    "ask",
+    "buttons",
+    "reply",
+    "mod",
+    "terminal",
+    "claude-code"
+  ],
   "types": "./types/index.d.ts"
 }

@@ -1,6 +1,6 @@
 ---
 tags: [visual, bar]
-runs: 2
+runs: 1
 max_turns: 6
 ---
 
