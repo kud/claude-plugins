@@ -54,10 +54,11 @@ Most cards cost nothing: reply-kit reads the finished reply and draws the design
 | a fence of `label  ██████▌  6.1` rows, blank-spaced | bar list                                           |
 | `▸ summary (N lines)` over a fence                  | a fold that opens and closes                       |
 | a ```sh fence of up to four lines                   | a **Copy** button per line                         |
+| `**Wave 2**: 👉 1 yours · ✅ 2 done`, then `- ✅ done [acme/api#41](url) docs fixed` rows | status ledger: state words in colour, refs as links |
 
-Call-out kinds: ⚠️ warning or cost, 💡 tip, ℹ️ info, ⭐ insight, 🚨 urgent, 🌶️ concern. Every colour is a theme key, so it follows light, dark and colour-blind themes. The mobile app has no clipboard path yet, so a copy card there shows the value alone, to select.
+Call-out kinds: ⚠️ warning or cost, 💡 tip, ℹ️ info, ⭐ insight, 🚨 urgent, 🌶️ concern. Every colour is a theme key, so it follows light, dark and colour-blind themes. A ledger's counts must match its rows, and its rows stay in the order written. The mobile app has no clipboard path yet, so a copy card there shows the value alone, to select.
 
-The shapes reach the model as one short system-prompt section (about 160 tokens), so they work without any other setup.
+The shapes reach the model as one short system-prompt section (about 230 tokens), so they work without any other setup.
 
 ## Live
 

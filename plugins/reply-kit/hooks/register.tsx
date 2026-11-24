@@ -14,7 +14,7 @@ import {
 import { SHAPES, hasCard, parseReply } from "./markdown"
 import type { Block } from "./markdown"
 import { answerText, askMarkdown, readAsk } from "./shapes"
-import { CALLOUTS, REF_MAX, cut, glyphs, progressCells } from "./visual"
+import { CALLOUTS, REF_MAX, STATUS, cut, glyphs, progressCells } from "./visual"
 
 // Two tools only: the ones that do something. Everything else is drawn from
 // the reply's own Markdown, which costs no tokens.
@@ -27,6 +27,9 @@ const LAST =
   "The user sees this ask as a card with buttons. End your reply here: write nothing after it."
 const SHOWN =
   "The user sees this as a card. Do not restate it; go on with anything new, or stop."
+
+// Wide enough for the longest state, `⏳ en attente`, and a gap.
+const STATE_WIDTH = 14
 
 const POLL_MS = 15_000
 const MAX_POLLS = 120
@@ -285,6 +288,36 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
             <Box width={figureWidth} justifyContent="flex-end">
               <Text>{item.figure}</Text>
             </Box>
+          </Box>
+        ))}
+      </Box>,
+    )
+  }
+
+  // The ledger's own lines, re-drawn: the state word coloured beside its
+  // emoji, in a fixed column, the ref a link, never re-sorted.
+  if (block.kind === "status") {
+    const { Link } = $.ui.resolve(e)
+    const refWidth =
+      Math.min(REF_MAX, Math.max(...block.rows.map((row) => row.ref.length))) + 2
+    return frame(
+      Box,
+      e.surface,
+      "subtle",
+      <Box flexDirection="column">
+        <Text>
+          <Text bold>{block.title}</Text>: {block.counts}
+        </Text>
+        <Text> </Text>
+        {block.rows.map((row) => (
+          <Box flexDirection="row">
+            <Box width={STATE_WIDTH}>
+              <Text color={STATUS[row.state].colour}>{row.word}</Text>
+            </Box>
+            <Box width={refWidth}>
+              <Link href={row.url} label={cut(row.ref, REF_MAX)} />
+            </Box>
+            <Text>{row.what}</Text>
           </Box>
         ))}
       </Box>,

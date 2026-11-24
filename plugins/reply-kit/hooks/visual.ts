@@ -260,13 +260,14 @@ export const STATUS: Record<StatusState, { word: string; colour: string }> = {
   open: { word: "💤 open", colour: "text" },
 }
 
+// What needs the reader first, the finished last (the design system's Ledger order).
 const GROUP_ORDER: StatusState[] = [
-  "done",
-  "pending",
+  "urgent",
   "yours",
   "risk",
-  "urgent",
+  "pending",
   "open",
+  "done",
 ]
 const WHAT_MAX = 40
 export const REF_MAX = 24

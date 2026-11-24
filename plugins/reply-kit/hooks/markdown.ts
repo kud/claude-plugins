@@ -3,7 +3,7 @@
 // exactly a shape stays Markdown: a near miss never becomes a broken card.
 // No `$` here, so tests run it directly.
 import { CALLOUTS } from "./visual"
-import type { CalloutKind } from "./visual"
+import type { CalloutKind, StatusState } from "./visual"
 
 export type Block =
   | { kind: "markdown"; text: string }
@@ -27,6 +27,20 @@ export type Block =
       rest: number
     }
   | { kind: "copy"; values: string[] }
+  | {
+      kind: "status"
+      title: string
+      counts: string
+      rows: LedgerRow[]
+    }
+
+export type LedgerRow = {
+  state: StatusState
+  word: string
+  ref: string
+  url: string
+  what: string
+}
 
 const EMOJI = new Map<string, CalloutKind>(
   (Object.keys(CALLOUTS) as CalloutKind[]).map((kind) => [
@@ -43,6 +57,19 @@ const PROGRESS =
 const BAR_ROW = /^(\S(?:.*\S)?) {2,}(█*[▏▎▍▌▋▊▉]?) {2,}(\S+)$/
 const FOLD_HEAD = /^▸ (.+) \((\d+) lines\)$/
 const FOLD_TAIL = /^… (\d+) more lines$/
+// The six states, by emoji, with their English and French words.
+const STATES = new Map<string, { state: StatusState; words: string[] }>([
+  ["🚨", { state: "urgent", words: ["urgent"] }],
+  ["👉", { state: "yours", words: ["yours", "à vous"] }],
+  ["⚠️", { state: "risk", words: ["risk", "risque"] }],
+  ["⏳", { state: "pending", words: ["pending", "en attente"] }],
+  ["💤", { state: "open", words: ["open", "ouvert"] }],
+  ["✅", { state: "done", words: ["done", "fait"] }],
+])
+// French typography may put a non-breaking space before the colon.
+const LEDGER_HEAD = /^\*\*([^*]+)\*\*[\u00a0\u202f ]?: (.+)$/
+const LEDGER_COUNT = /^(\S+) (\d+) (.+)$/
+const LEDGER_ROW = /^- (\S+) (.+?) \[([^\]]+)\]\((https?:\/\/[^)\s]+)\) (\S.*)$/
 const SHELL = new Set(["sh", "bash", "zsh", "shell", "console"])
 const COPY_MAX = 4
 
@@ -68,6 +95,53 @@ const readCallout = (lines: string[], at: number) => {
   if (!body) return undefined
   return {
     block: { kind: "callout", callout, label: head[2] ?? "", body } as const,
+    end,
+  }
+}
+
+const stateOf = (emoji: string, word: string) => {
+  const known = STATES.get(emoji)
+  return known && known.words.includes(word) ? known.state : undefined
+}
+
+// A ledger: a bold title with its counts, then two or more linked rows right
+// under it. The counts must agree with the rows, or it stays Markdown.
+const readLedger = (lines: string[], at: number) => {
+  const head = (lines[at] ?? "").match(LEDGER_HEAD)
+  if (!head) return undefined
+  const counts = new Map<StatusState, number>()
+  for (const part of (head[2] ?? "").split(" · ")) {
+    const count = part.match(LEDGER_COUNT)
+    const state = count && stateOf(count[1] ?? "", count[3] ?? "")
+    if (!count || !state || counts.has(state)) return undefined
+    counts.set(state, Number(count[2]))
+  }
+  const rows: LedgerRow[] = []
+  let end = at + 1
+  for (; end < lines.length; end += 1) {
+    const row = (lines[end] ?? "").match(LEDGER_ROW)
+    const state = row && stateOf(row[1] ?? "", row[2] ?? "")
+    if (!row || !state) break
+    rows.push({
+      state,
+      word: `${row[1]} ${row[2]}`,
+      ref: row[3] ?? "",
+      url: row[4] ?? "",
+      what: row[5] ?? "",
+    })
+  }
+  if (rows.length < 2) return undefined
+  for (const [state, count] of counts)
+    if (rows.filter((row) => row.state === state).length !== count)
+      return undefined
+  if (rows.some((row) => !counts.has(row.state))) return undefined
+  return {
+    block: {
+      kind: "status",
+      title: head[1] ?? "",
+      counts: head[2] ?? "",
+      rows,
+    } as const,
     end,
   }
 }
@@ -138,6 +212,14 @@ export const parseReply = (text: string): Block[] => {
   while (at < lines.length) {
     const line = lines[at] ?? ""
 
+    const ledger = readLedger(lines, at)
+    if (ledger) {
+      flush()
+      blocks.push(ledger.block)
+      at = ledger.end
+      continue
+    }
+
     const callout = readCallout(lines, at)
     if (callout) {
       flush()
@@ -206,4 +288,5 @@ export const SHAPES = [
   "- Bar list, in a fence: `label  ██████▌  6.1` per item, a blank line between bars.",
   "- Fold: `▸ summary (N lines)`, then a fence holding the first 20 lines and `… M more lines`.",
   "- Commands to copy: a ```sh fence, at most four lines.",
+  "- Status ledger, plain Markdown: `**Wave 2**: 👉 1 yours · ✅ 2 done` (counts in state order), then one row per item directly under it: `- ✅ done [acme/api#41](https://github.com/acme/api/pull/41) docs fixed`. States in order: 🚨 urgent, 👉 yours, ⚠️ risk, ⏳ pending, 💤 open, ✅ done; from five rows, grouped in that order.",
 ].join("\n")
