@@ -58,7 +58,7 @@ Most cards cost nothing: reply-kit reads the finished reply and draws the design
 
 Call-out kinds: ⚠️ warning or cost, 💡 tip, ℹ️ info, ⭐ insight, 🚨 urgent, 🌶️ concern. Every colour is a theme key, so it follows light, dark and colour-blind themes. A ledger's counts must match its rows, and its rows stay in the order written. The mobile app has no clipboard path yet, so a copy card there shows the value alone, to select.
 
-The shapes reach the model as one short system-prompt section (about 230 tokens), so they work without any other setup.
+The shapes reach the model as one short system-prompt section (about 245 tokens), so they work without any other setup.
 
 ## Live
 
