@@ -11,6 +11,7 @@ export type Block =
   | {
       kind: "grid"
       title?: string
+      columns?: string[]
       rows: { subject: string; runs: boolean[] }[]
     }
   | { kind: "progress"; label: string; value: number; max: number }
@@ -52,6 +53,9 @@ const EMOJI = new Map<string, CalloutKind>(
 const CALLOUT_HEAD = /^> (\S+) \*\*([^*]+)\*\*$/
 const FENCE = /^```([\w-]*)$/
 const GRID_ROW = /^(\S(?:.*\S)?) {2,}([✓✗]+)$/
+// Column labels sit over the glyphs: indented, one word per column.
+const GRID_HEAD = /^ {2,}(\S+(?: \S+)*)$/
+const ASK_RULE = /^── 👋 (Over to you|À vous) ──$/
 const PROGRESS =
   /^(\S(?:.*\S)?) {2}(█*)(░*) {2}(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/
 const BAR_ROW = /^(\S(?:.*\S)?) {2,}(█*[▏▎▍▌▋▊▉]?) {2,}(\S+)$/
@@ -152,13 +156,26 @@ const readFence = (lang: string, body: string[]): Block | undefined => {
   if (filled.length === 0) return undefined
 
   if (!lang) {
-    // A grid may open on a title line; every other line is a row.
-    const titled = filled.length > 1 && !GRID_ROW.test(filled[0] ?? "")
-    const grid = filled.slice(titled ? 1 : 0).map((line) => line.match(GRID_ROW))
-    if (grid.every(Boolean))
+    // A grid may open on a title line, then a line of column labels; every
+    // other line is a row, as many glyphs as there are labels.
+    let from = 0
+    const isHead = (line: string) => GRID_HEAD.test(line)
+    const titled =
+      filled.length > 1 &&
+      !GRID_ROW.test(filled[0] ?? "") &&
+      !isHead(filled[0] ?? "")
+    if (titled) from += 1
+    const head = (filled[from] ?? "").match(GRID_HEAD)
+    if (head) from += 1
+    const columns = head ? (head[1] ?? "").split(" ") : undefined
+    const grid = filled.slice(from).map((line) => line.match(GRID_ROW))
+    const fits = (row: RegExpMatchArray | null) =>
+      !columns || [...(row?.[2] ?? "")].length === columns.length
+    if (grid.length > 0 && grid.every(Boolean) && grid.every(fits))
       return {
         kind: "grid",
         ...(titled ? { title: filled[0] ?? "" } : {}),
+        ...(columns ? { columns } : {}),
         rows: grid.map((row) => ({
           subject: row![1] ?? "",
           runs: [...(row![2] ?? "")].map((glyph) => glyph === "✓"),
@@ -275,6 +292,14 @@ export const parseReply = (text: string): Block[] => {
   return blocks
 }
 
+// The ask card draws its own `── 👋 Over to you ──` heading, so the same rule
+// closing the reply's text is dropped rather than shown twice.
+export const dropAskRule = (text: string) => {
+  const lines = text.trimEnd().split("\n")
+  if (!ASK_RULE.test(lines.at(-1) ?? "")) return text
+  return lines.slice(0, -1).join("\n").trimEnd()
+}
+
 export const hasCard = (blocks: Block[]) =>
   blocks.some((block) => block.kind !== "markdown")
 
@@ -283,10 +308,11 @@ export const hasCard = (blocks: Block[]) =>
 export const SHAPES = [
   "Reply shapes drawn as cards. Write them exactly, only when they fit; anything else stays plain Markdown.",
   "- Call-out: `> ⚠️ **Warning**`, a `>` line, then `> ` body lines. ⚠️ warning or cost, 💡 tip, ℹ️ info, ⭐ insight, 🚨 urgent, 🌶️ concern; the label follows the reply's language.",
-  "- Run grid, in a fence: `acme/api   ✓✓✗✓` per subject, oldest run first.",
+  "- Run grid, in a fence: an optional title line, an optional label line indented under the glyphs (`           lint test build e2e`, one word per column), then `acme/api   ✓✓✗✓` per subject, oldest run first.",
   "- Progress, in a fence: `release 2.4  ████████░░  8/10`, ten cells.",
   "- Bar list, in a fence: `label  ██████▌  6.1` per item, a blank line between bars.",
   "- Fold: `▸ summary (N lines)`, then a fence holding the first 20 lines and `… M more lines`.",
   "- Commands to copy: a ```sh fence, at most four lines.",
   "- Status ledger, plain Markdown: `**Wave 2**: 👉 1 yours · ✅ 2 done` (counts in state order), then one row per item directly under it: `- ✅ done [acme/api#41](https://github.com/acme/api/pull/41) docs fixed`. States in order: 🚨 urgent, 👉 yours, ⚠️ risk, ⏳ pending, 💤 open, ✅ done; from five rows, grouped in that order.",
+  "- Closing ask: call mcp__reply-kit__ask instead of writing the `── 👋 Over to you ──` block. The call ends the turn: write nothing after it.",
 ].join("\n")

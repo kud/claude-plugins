@@ -24,7 +24,9 @@ Publish 2.4.1 now?
 
 Use `isGated` for anything hard to undo: a delete, a send, a spend, a merge. A press on a plain ask reaches the model as a message from the plugin, so it should never stand in for your approval of such an action; the gated form makes the message yours.
 
-Digits work too: `1` to `9` press the matching option while the card holds the keyboard. Once answered, the card marks the choice with `👉` and the others go dim.
+Digits work too: `1` to `9` press the matching option while the card holds the keyboard. Once answered, the card marks the choice with `👉` and stays pressable until the next reply starts: a new pick replaces the old one (a gated draft is filled again; a plain answer whose turn has not yet said anything is stopped and the new one sent). Then the pick locks and the other options go dim.
+
+The ask ends the reply. Once its card is drawn, the turn stops there with no further model request, so nothing can follow the card; if the reply's text ends on its own `── 👋 Over to you ──` line, that line is dropped, as the card draws the heading.
 
 ## The fallback
 
@@ -50,15 +52,18 @@ Most cards cost nothing: reply-kit reads the finished reply and draws the design
 | -------------------------------------------------- | -------------------------------------------------- |
 | `> ⚠️ **Warning**`, a `>` line, then `> ` body lines | border in the kind's colour, beside emoji and label |
 | a fence of `acme/api   ✓✓✗✓` rows                  | run grid, `✓` / `✗` in colour                      |
+| the same, under an indented `    lint test build` line | run grid with a label over each column         |
 | a fence holding `release 2.4  ████████░░  8/10`    | progress bar                                       |
 | a fence of `label  ██████▌  6.1` rows, blank-spaced | bar list                                           |
 | `▸ summary (N lines)` over a fence                  | a fold that opens and closes                       |
 | a ```sh fence of up to four lines                   | a **Copy** button per line                         |
 | `**Wave 2**: 👉 1 yours · ✅ 2 done`, then `- ✅ done [acme/api#41](url) docs fixed` rows | status ledger: state words in colour, refs as links |
 
+A card wider than the window is held to it, so its right border always shows; the text inside wraps.
+
 Call-out kinds: ⚠️ warning or cost, 💡 tip, ℹ️ info, ⭐ insight, 🚨 urgent, 🌶️ concern. Every colour is a theme key, so it follows light, dark and colour-blind themes. A ledger's counts must match its rows, and its rows stay in the order written. The mobile app has no clipboard path yet, so a copy card there shows the value alone, to select.
 
-The shapes reach the model as one short system-prompt section (about 245 tokens), so they work without any other setup.
+The shapes reach the model as one short system-prompt section (about 300 tokens), so they work without any other setup.
 
 ## Live
 

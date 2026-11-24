@@ -293,3 +293,85 @@ test("a status card colours each state word beside its emoji and links each ref"
   ).toContain("https://github.com/acme/site/pull/7")
   await ui.unmount()
 })
+
+test("the reply's own closing rule is dropped, as the ask card draws it", async ($, on) => {
+  const engine: string[] = []
+  on("ui.render", { component: "AssistantMessage" }, (_: unknown, e: any) => {
+    engine.push(e.props.text)
+    return { type: "Text", props: {}, children: [e.props.text] }
+  })
+  await boot($, on)
+  const drawnText = async (text: string) => {
+    engine.length = 0
+    const ui = await $.ui.mount(message(text) as any)
+    const all = [textOf(walk(await ui.drawn())), ...engine].join(" ")
+    await ui.unmount()
+    return all
+  }
+  expect(await drawnText("Both are ready.\n\n── 👋 Over to you ──\n")).not.toContain("Over to you")
+  expect(await drawnText("Prêt.\n\n── 👋 À vous ──")).not.toContain("À vous")
+  expect(
+    await drawnText("> ⚠️ **Warning**\n>\n> risk\n\n── 👋 Over to you ──"),
+  ).not.toContain("Over to you")
+  expect(await drawnText("── 👋 Over to you ──\nthen more prose")).toContain("Over to you")
+})
+
+test("a card wider than the viewport is held to it, so its right border is drawn", async ($, on) => {
+  await boot($, on)
+  const widths = async (text: string, columns?: number) => {
+    const ui = await $.ui.mount({
+      ...message(text),
+      ...(columns ? { viewport: { columns, rows: 40 } } : { viewport: undefined }),
+    } as any)
+    const found = framed(walk(await ui.drawn())).map((n) => n.props?.width)
+    await ui.unmount()
+    return found
+  }
+  const long = `> ⚠️ **Warning**\n>\n> ${"word ".repeat(30).trim()}`
+  expect(await widths(long, 40)).toEqual([38])
+  expect(await widths("> 💡 **Tip**\n>\n> short", 100)).toEqual([undefined])
+  expect(await widths(long)).toEqual([undefined])
+  const grid = "```\n" + `${"x".repeat(30)}   ${"✓".repeat(40)}` + "\n```"
+  expect(await widths(grid, 50)).toEqual([48])
+})
+
+const LABELLED = [
+  "```",
+  "CI, last runs",
+  "            lint test build",
+  "acme/api    ✓✓✗",
+  "acme/web    ✓✓✓",
+  "```",
+].join("\n")
+
+test("a grid may name its columns on a label line", () => {
+  expect(parseReply(LABELLED)).toEqual([
+    {
+      kind: "grid",
+      title: "CI, last runs",
+      columns: ["lint", "test", "build"],
+      rows: [
+        { subject: "acme/api", runs: [true, true, false] },
+        { subject: "acme/web", runs: [true, true, true] },
+      ],
+    },
+  ])
+  expect(parseReply(LABELLED.replace("✓✓✗", "✓✗")).map((b) => b.kind)).toEqual(["markdown"])
+  expect(
+    parseReply("```\n      lint test\nacme/api  ✓✗\n```")[0],
+  ).toMatchObject({ kind: "grid", columns: ["lint", "test"] })
+})
+
+test("a labelled grid draws its labels over the glyph columns", async ($, on) => {
+  await boot($, on)
+  const ui = await $.ui.mount(message(LABELLED) as any)
+  const nodes = walk(await ui.drawn())
+  const labels = nodes.filter(
+    (n) => n.type === "Text" && n.props?.color === "inactive",
+  )
+  expect(textOf(labels)).toContain("lint")
+  expect(textOf(labels)).toContain("build")
+  const marks = nodes.filter((n) => n.type === "Text" && n.props?.color === "error")
+  expect(marks.length).toBe(1)
+  await ui.unmount()
+})

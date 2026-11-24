@@ -30,8 +30,41 @@ const boot = async ($: any, on: any) => {
     "prompt.fill",
     (_: unknown, e: any) => (sent.fill.push(e.text), { isFilled: true }),
   )
+  beneath(on)
   await $.session.start({ cwd: "/", surface: "terminal", isInteractive: true })
   return sent
+}
+
+
+// The model beneath the plugins, faked: each step answers with a piece of text,
+// or with calls to the tools `model.tools` names, and notes it was reached.
+const model = { tools: [] as [string, string][], isSent: false }
+
+const beneath = (on: any) =>
+  on("turn.step", async function* (_: unknown, e: any) {
+    model.isSent = true
+    const tools = model.tools
+    if (tools.length === 0) yield { kind: "text", index: 0, text: "Merged." }
+    for (const [name, id] of tools) yield { kind: "tool", index: 0, id, name }
+    return {
+      turnId: e.turnId,
+      index: e.index,
+      answer: tools.length === 0 ? "Merged." : "",
+      toolUses: tools.map(([name]) => ({ name, input: {} })),
+      stopReason: tools.length === 0 ? "end_turn" : "tool_use",
+      usage: null,
+    }
+  })
+
+// One model step of the main loop: what it answered, and whether the request
+// reached the model.
+const step = async ($: any, _on: unknown, turnId: string, index: number, tools: [string, string][] = []) => {
+  model.tools = tools
+  model.isSent = false
+  const stream = $.turn.step({ turnId, index, model: "m", messageCount: 1 })
+  let piece = await stream.next()
+  while (!piece.done) piece = await stream.next()
+  return { result: piece.value, isSent: model.isSent }
 }
 
 const texts = async (ui: any) =>
@@ -51,7 +84,13 @@ test("a multi ask toggles options and Done submits the set once", async ($, on) 
   await ui.press({ key: "option-1" })
   await ui.press({ key: "done" })
   expect(sent.submit).toEqual(["1, 3"])
+  // Until the next reply starts, the set can change and be sent again.
+  await ui.press({ key: "option-1" })
+  await ui.press({ key: "done" })
+  expect(sent.submit).toEqual(["1, 3", "1, 2, 3"])
+  await step($, on, "t2", 0)
   expect(await ui.find({ type: "Button", key: "done" })).toBeFalsy()
+  expect(await ui.find({ type: "Button", key: "option-0" })).toBeFalsy()
   await ui.unmount()
 })
 

@@ -11,10 +11,18 @@ import {
   runMarkdown,
   stateWord,
 } from "./inputs"
-import { SHAPES, hasCard, parseReply } from "./markdown"
+import { SHAPES, dropAskRule, hasCard, parseReply } from "./markdown"
 import type { Block } from "./markdown"
 import { answerText, askMarkdown, readAsk } from "./shapes"
-import { CALLOUTS, REF_MAX, STATUS, cut, glyphs, progressCells } from "./visual"
+import {
+  CALLOUTS,
+  REF_MAX,
+  STATUS,
+  cardWidth,
+  cut,
+  glyphs,
+  progressCells,
+} from "./visual"
 
 // Two tools only: the ones that do something. Everything else is drawn from
 // the reply's own Markdown, which costs no tokens.
@@ -59,6 +67,21 @@ const folds = atom(
   {},
   { shape: "folds-1" },
 )
+// An answered ask stays open to a new pick until the next reply starts.
+const locked = atom(
+  { plugin: "reply-kit", key: "locked" } as const,
+  {},
+  { shape: "locked-1" },
+)
+
+// The main loop's running turn, and the turn each plain answer started, so a
+// new pick can stop the turn the old one started before it has said anything.
+let currentTurn: string | undefined
+const answeredTurn = new Map<string, string>()
+// Ask calls a step made alone, by turn, and the ones whose card was drawn:
+// once all are drawn, the turn ends there and nothing follows the card.
+const askedIn = new Map<string, string[]>()
+const shown = new Set<string>()
 
 const NO_CHOICE: ChooseState = { picked: [], isSent: false }
 
@@ -72,35 +95,76 @@ async function reply($: EngineInterface, text: string, isGated: boolean) {
   }
 }
 
+// A new pick replaces the old one: a gated draft is simply filled again; a
+// plain answer's turn, still silent, is stopped before the new one is sent.
+async function answer(
+  $: EngineInterface,
+  id: string,
+  text: string,
+  isGated: boolean,
+  isRepick: boolean,
+) {
+  const started = answeredTurn.get(id)
+  if (isRepick && !isGated && started !== undefined && started === currentTurn)
+    await $.turn.abort({ turnId: started }).catch(() => undefined)
+  await reply($, text, isGated)
+  if (!isGated && currentTurn !== undefined) answeredTurn.set(id, currentTurn)
+}
+
 async function choose(
   $: EngineInterface,
   id: string,
   input: AskInput,
   index: number,
 ) {
+  if ((await read($, locked))[id]) return
+  const before = (await read($, answers))[id]
+  if (before === index) return
   await update($, answers, (all) => ({ ...all, [id]: index }))
-  await reply($, answerText(input, index), input.isGated === true)
+  await answer(
+    $,
+    id,
+    answerText(input, index),
+    input.isGated === true,
+    before !== undefined,
+  )
 }
 
 async function toggle($: EngineInterface, id: string, index: number) {
+  if ((await read($, locked))[id]) return
   await update($, choices, (all) => {
     const state = all[id] ?? NO_CHOICE
-    if (state.isSent) return all
     const picked = state.picked.includes(index)
       ? state.picked.filter((one) => one !== index)
       : [...state.picked, index]
-    return { ...all, [id]: { picked, isSent: false } }
+    return { ...all, [id]: { ...state, picked } }
   })
 }
 
 async function sendChoice($: EngineInterface, id: string, isGated: boolean) {
+  if ((await read($, locked))[id]) return
   const state = (await read($, choices))[id] ?? NO_CHOICE
-  if (state.isSent || state.picked.length === 0) return
+  if (state.picked.length === 0) return
   await update($, choices, (all) => ({
     ...all,
     [id]: { ...state, isSent: true },
   }))
-  await reply($, chosenText(state.picked), isGated)
+  await answer($, id, chosenText(state.picked), isGated, state.isSent)
+}
+
+// The next reply has started: every answered ask keeps its pick for good.
+async function lockAnswered($: EngineInterface) {
+  const picked = Object.keys(await read($, answers))
+  const sent = Object.entries(await read($, choices))
+    .filter(([, state]) => state.isSent)
+    .map(([id]) => id)
+  const all = await read($, locked)
+  const open = [...picked, ...sent].filter((id) => !all[id])
+  if (open.length === 0) return
+  await update($, locked, (now) => ({
+    ...now,
+    ...Object.fromEntries(open.map((id) => [id, true])),
+  }))
 }
 
 async function copyOne(
@@ -151,17 +215,23 @@ async function watchRun($: EngineInterface, id: string, input: LiveInput) {
 
 // Mobile apps draw a card under the row only when the Box holding the row and
 // the content carries the border; elsewhere the row stays plain above the card.
-const outer = (surface: string) =>
+const outer = (surface: string, width?: number) =>
   surface === "mobile"
     ? {
         flexDirection: "column" as const,
         borderStyle: "round",
         borderColor: "subtle",
         paddingX: 1,
+        ...(width === undefined ? {} : { width }),
       }
     : { flexDirection: "column" as const }
 
-const card = (Box: any, surface: string, children: unknown) =>
+const card = (
+  Box: any,
+  surface: string,
+  children: unknown,
+  width?: number,
+) =>
   surface === "mobile" ? (
     <Box flexDirection="column">{children}</Box>
   ) : (
@@ -171,6 +241,7 @@ const card = (Box: any, surface: string, children: unknown) =>
         borderStyle="round"
         borderColor="subtle"
         paddingX={2}
+        {...(width === undefined ? {} : { width })}
       >
         {children}
       </Box>
@@ -179,17 +250,21 @@ const card = (Box: any, surface: string, children: unknown) =>
 
 // A card inside a reply: the border carries the meaning as a second signal
 // (the emoji and the word carry the first).
+const padOf = (surface: string) => (surface === "mobile" ? 1 : 2)
+
 const frame = (
   Box: any,
   surface: string,
   border: string,
   children: unknown,
+  width?: number,
 ) => (
   <Box
     flexDirection="column"
     borderStyle="round"
     borderColor={border}
-    paddingX={surface === "mobile" ? 1 : 2}
+    paddingX={padOf(surface)}
+    {...(width === undefined ? {} : { width })}
   >
     {children}
   </Box>
@@ -199,6 +274,8 @@ const frame = (
 // fold or a copy keeps its state across redraws.
 async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
   const { Box, Button, Markdown, Text } = $.ui.resolve(e)
+  const widthOf = (lines: string[]) =>
+    cardWidth(lines, e.viewport?.columns, padOf(e.surface))
 
   if (block.kind === "markdown") return <Markdown text={block.text} />
 
@@ -214,6 +291,10 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
         <Text> </Text>
         <Markdown text={block.body} />
       </Box>,
+      widthOf([
+        `${CALLOUTS[block.callout].emoji} ${block.label}`,
+        block.body,
+      ]),
     )
 
   if (block.kind === "grid") {
@@ -222,6 +303,30 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
         REF_MAX,
         Math.max(...block.rows.map((one) => one.subject.length)),
       ) + 2
+    // With labels, each glyph sits in its label's column, one space apart.
+    const columns = block.columns ?? []
+    const cellOf = (index: number) => Math.max(1, columns[index]?.length ?? 1)
+    const glyphCells = (runs: boolean[]) =>
+      columns.length === 0 ? (
+        <Text>
+          {runs.map((pass) => (
+            <Text color={pass ? "success" : "error"}>{glyphs([pass])}</Text>
+          ))}
+        </Text>
+      ) : (
+        <Box flexDirection="row" gap={1}>
+          {runs.map((pass, index) => (
+            <Box width={cellOf(index)}>
+              <Text color={pass ? "success" : "error"}>{glyphs([pass])}</Text>
+            </Box>
+          ))}
+        </Box>
+      )
+    const rowWidth =
+      width +
+      (columns.length === 0
+        ? Math.max(...block.rows.map((one) => one.runs.length))
+        : columns.reduce((sum, label) => sum + label.length + 1, -1))
     return frame(
       Box,
       e.surface,
@@ -229,19 +334,30 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
       <Box flexDirection="column">
         {block.title ? <Text color="inactive">{block.title}</Text> : null}
         {block.title ? <Text> </Text> : null}
+        {columns.length > 0 ? (
+          <Box flexDirection="row">
+            <Box width={width}>
+              <Text> </Text>
+            </Box>
+            <Box flexDirection="row" gap={1}>
+              {columns.map((label, index) => (
+                <Box width={cellOf(index)}>
+                  <Text color="inactive">{label}</Text>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : null}
         {block.rows.map((one) => (
           <Box flexDirection="row">
             <Box width={width}>
               <Text>{cut(one.subject, REF_MAX)}</Text>
             </Box>
-            <Text>
-              {one.runs.map((pass) => (
-                <Text color={pass ? "success" : "error"}>{glyphs([pass])}</Text>
-              ))}
-            </Text>
+            {glyphCells(one.runs)}
           </Box>
         ))}
       </Box>,
+      widthOf([block.title ?? "", "x".repeat(rowWidth)]),
     )
   }
 
@@ -259,6 +375,9 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
         {"  "}
         {block.value}/{block.max}
       </Text>,
+      widthOf([
+        `${block.label}  ${fill}${track}  ${block.value}/${block.max}`,
+      ]),
     )
   }
 
@@ -291,6 +410,7 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
           </Box>
         ))}
       </Box>,
+      widthOf([block.title ?? "", "x".repeat(labelWidth + 22 + figureWidth)]),
     )
   }
 
@@ -321,6 +441,12 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
           </Box>
         ))}
       </Box>,
+      widthOf([
+        `${block.title}: ${block.counts}`,
+        ...block.rows.map(
+          (row) => "x".repeat(STATE_WIDTH + refWidth) + row.what,
+        ),
+      ]),
     )
   }
 
@@ -343,6 +469,10 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
           <Text color="inactive">… {block.rest} more lines</Text>
         ) : null}
       </Box>,
+      widthOf([
+        `▸ ${block.summary} (${block.lines} lines)`,
+        ...(isOpen ? block.head : []),
+      ]),
     )
   }
 
@@ -375,6 +505,7 @@ async function drawBlock($: EngineInterface, e: any, block: Block, id: string) {
         </Box>
       ))}
     </Box>,
+    widthOf(block.values),
   )
 }
 
@@ -391,9 +522,14 @@ export const register: Register = (on) => {
   // reply, and any near miss, stays Markdown as the engine draws it.
   on("ui.render", { component: "AssistantMessage" }, async ($, e, next) => {
     if (e.props.isSummary) return next(e)
-    const blocks = parseReply(e.props.text)
-    if (!hasCard(blocks)) return next(e)
+    const text = dropAskRule(e.props.text)
+    const blocks = parseReply(text)
     const { Box } = $.ui.resolve(e)
+    if (!text.trim()) return <Box />
+    if (!hasCard(blocks))
+      return text === e.props.text
+        ? next(e)
+        : next({ ...e, props: { ...e.props, text } })
 
     // The first Markdown block keeps the engine's own drawing, bullet included.
     const drawn = await Promise.all(
@@ -419,6 +555,53 @@ export const register: Register = (on) => {
         ...composed.sections,
         { id: "reply-kit:shapes", text: SHAPES, scope: "session" as const },
       ],
+    }
+  })
+
+  on("turn.start", async (_, e, next) => {
+    const started = await next(e)
+    if (e.agentId === undefined) currentTurn = started.turnId
+    return started
+  })
+
+  // After a step that only asked, and whose card was drawn, the turn ends with
+  // no further request, so no prose can follow the card. The first piece of a
+  // later reply locks every answered ask on its pick.
+  on("turn.step", async function* ($, e, next) {
+    if (e.agentId !== undefined) return yield* next(e)
+    const asked = askedIn.get(e.turnId)
+    if (asked) {
+      askedIn.delete(e.turnId)
+      if (asked.every((id) => shown.has(id)))
+        return {
+          turnId: e.turnId,
+          index: e.index,
+          answer: "",
+          toolUses: [],
+          stopReason: "end_turn" as const,
+          usage: null,
+        }
+    }
+    const stream = next(e)
+    const asks: string[] = []
+    let isAskOnly = true
+    let isLocked = false
+    for (;;) {
+      const piece = await stream.next()
+      if (piece.done) {
+        if (isAskOnly && asks.length > 0) askedIn.set(e.turnId, asks)
+        return piece.value
+      }
+      const chunk = piece.value
+      if (!isLocked && chunk.kind !== "engine") {
+        isLocked = true
+        await lockAnswered($)
+      }
+      if (chunk.kind === "tool") {
+        if (chunk.name === ASK) asks.push(chunk.id)
+        else isAskOnly = false
+      }
+      yield chunk
     }
   })
 
@@ -465,6 +648,7 @@ export const register: Register = (on) => {
   on("tool.run", { tool: ASK }, (_, e) => {
     const input = readAsk(e)
     if (!input) return { deny: "ask needs a question and at least two options" }
+    shown.add(String(e.tool_use_id))
 
     return { result: askMarkdown(input), context: [LAST] }
   })
@@ -507,12 +691,22 @@ export const register: Register = (on) => {
             {index + 1}. {option}
           </Text>
         )
+      const isLocked = (await read($, locked))[id] === true
+      const width = cardWidth(
+        [
+          `── 👋 ${input.french ? "À vous" : "Over to you"} ──`,
+          input.question,
+          ...input.options.map((option) => `👉 [x] ${option}`),
+        ],
+        e.viewport?.columns,
+        padOf(e.surface),
+      )
 
       if (input.multi) {
         const state = (await read($, choices))[id] ?? NO_CHOICE
         const isGated = input.isGated === true
         return (
-          <Box {...outer(e.surface)}>
+          <Box {...outer(e.surface, width)}>
             {row}
             {card(
               Box,
@@ -521,7 +715,7 @@ export const register: Register = (on) => {
                 {heading}
                 <Text>{input.question}</Text>
                 <Text> </Text>
-                {state.isSent ? (
+                {state.isSent && isLocked ? (
                   input.options.map((option, index) =>
                     picked(index, option, state.picked.includes(index)),
                   )
@@ -555,6 +749,7 @@ export const register: Register = (on) => {
                   </Box>
                 )}
               </Box>,
+              width,
             )}
           </Box>
         )
@@ -562,7 +757,7 @@ export const register: Register = (on) => {
 
       const chosen = (await read($, answers))[id]
       return (
-        <Box {...outer(e.surface)}>
+        <Box {...outer(e.surface, width)}>
           {row}
           {card(
             Box,
@@ -571,13 +766,17 @@ export const register: Register = (on) => {
               {heading}
               <Text>{input.question}</Text>
               <Text> </Text>
-              {chosen === undefined ? (
+              {chosen === undefined || !isLocked ? (
                 <Box flexDirection="column">
                   {input.options.map((option, index) => (
                     <Button
                       key={`option-${index}`}
                       plain
-                      label={option}
+                      label={
+                        chosen === undefined
+                          ? option
+                          : `${chosen === index ? "👉" : "  "} ${option}`
+                      }
                       hotkey={String(index + 1)}
                       variant={index === 0 ? "primary" : "secondary"}
                       onPress={() => choose($, id, input, index)}
@@ -590,6 +789,7 @@ export const register: Register = (on) => {
                 )
               )}
             </Box>,
+            width,
           )}
         </Box>
       )

@@ -33,6 +33,7 @@ declare module "claude-code" {
       choices: Shaped<Record<string, ChooseState>>
       runs: Shaped<Record<string, LiveRun>>
       folds: Shaped<Record<string, boolean>>
+      locked: Shaped<Record<string, boolean>>
     }
   }
 }
